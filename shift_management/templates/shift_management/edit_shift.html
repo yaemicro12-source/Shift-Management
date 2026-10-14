@@ -42,14 +42,17 @@
                             {% else %}
                                 <td>
                                 <div><div>
-                                    <a href="{% url 'shift_management:edit_shift' %}?date={{ year }}-{{ month }}-{{ day }}">{{ day }}
+                                    <a href="{% url 'shift_management:edit_shift' %}?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}">
+                                         {{ day }}
                                     </a>
                                 </div></div>
                                 {% for shift in shifts %}
                                     {% if shift.work_date.day == day %}
-                                    {{ shift.store }}
-                                    {{ shift.start_time }}
-                                    {{ shift.end_time }}
+                                        <a href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}&shift_id={{ shift.id }}">
+                                            {{ shift.store }}
+                                            {{ shift.start_time }}
+                                            {{ shift.end_time }}
+                                        </a>
                                     {% endif %}
                                 {% endfor %}
                                 </td>
@@ -114,8 +117,9 @@
         {{ form.start_time.errors }}
         <p>終了時間 {{ form.end_time }} </p>
         <!--シフト枠のidを取得するための隠しinput欄-->
-       {{ forms.shift_time_slot }}
-        <button type="submit">シフト登録</button>
+       {{ form.shift_time_slot }}
+        <button type="submit" name="action" value="save">シフト登録・変更を反映</button>
+        <button type="submit" name="action" value="delete">削除</button>
         </form>
 
     {% endblock %}

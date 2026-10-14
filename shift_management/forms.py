@@ -45,4 +45,5 @@ class ShiftAssignmentForm(forms.ModelForm):
             self.fields["staff"].label_from_instance = lambda staff: staff.name
             self.fields["staff"].empty_label = "スタッフ"
             self.fields["store"].empty_label = "店舗"
-
+            self.fields["staff"].required = True
+            self.fields["store"].required = True
