@@ -1,0 +1,31 @@
+{% block content %}
+<h1>従業員一覧</h1>
+<p><a href="{% url 'shift_management:add_staff' %}">従業員追加</a></p>
+
+
+    <table>
+        <tr>
+            <th>役職</th>
+            <th>名前</th>
+            <th>ID</th>
+            <th>終電時間</th>
+            <th>メモ</th>
+        </tr>
+            {% for staff in staffs %}
+        <tr>
+            <td>{% if  staff.role == 2 %}
+                    <p>〇</p>
+                {% endif %}
+            </td>
+            <td>   
+                <a href="{% url 'shift_management:edit_staff' staff.id %}">
+                {{ staff.name }}
+            </a></td>
+            <td>{{ staff.user.username }}</td>
+            <td>{{ staff.last_train_departure_time }}</td>
+            <td>{{ staff.note }}</td>
+            {% endfor %}
+        </tr>
+
+    </table>
+{% endblock %}

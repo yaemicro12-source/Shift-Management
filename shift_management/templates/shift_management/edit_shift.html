@@ -1,0 +1,140 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>シフト編集</title>
+
+    <link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+</head>
+
+
+<body>
+
+    <!--カレンダー形式-->
+    {% block content %}
+        <h1>{{year}}年{{ month }}月</h1>
+        <select>{% for select in selects %}
+                    <option>{{select}}</option>
+                {% endfor %}
+        </select>
+        <table>
+            <thead>
+                <tr>
+                    <th>月</th>
+                    <th>火</th>
+                    <th>水</th>
+                    <th>木</th>
+                    <th>金</th>
+                    <th>土</th>
+                    <th>日</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for week in weeks %}
+                    <tr>
+                        {% for day in week %}
+                            {% if day == 0 %}
+                                <td></td>
+                            {% else %}
+                                <td>
+                                <div><div>
+                                    <a href="{% url 'shift_management:edit_shift' %}?date={{ year }}-{{ month }}-{{ day }}">{{ day }}
+                                    </a>
+                                </div></div>
+                                {% for shift in shifts %}
+                                    {% if shift.work_date.day == day %}
+                                    {{ shift.store }}
+                                    {{ shift.start_time }}
+                                    {{ shift.end_time }}
+                                    {% endif %}
+                                {% endfor %}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+
+        <!--グラフ形式-->
+        <div class="shift-chart">
+            <div class="time-axis">
+                <div class="chart-header">時間</div>
+                {% for hour in hours %}
+                    <div class="time-label">{{ hour }}:00</div>
+                {% endfor %}
+            </div>
+
+            <div class="staff-area">
+                {% for staff in staffs %}
+                    <div class="staff-column">
+                        <div class="chart-header">{{ staff.name }}</div>
+                        <div class="staff-timeline">
+                            {% for hour in hours %}
+                                <div class="hour-line"></div>
+                            {% endfor %}
+                            <div class="shift-bar"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- シフト枠入力欄 -->
+        <p>{{year}}年{{month}}月{{day}}日のシフト</p>
+        {% if error %}
+            <p>{{ error }}</p>
+        {% endif %}
+        <form method="post">
+        {{ form.work_date }}      
+        {% csrf_token %}
+        {{ form.errors }}
+        {{ form.staff }}
+        <br>
+        {{ form.store }}
+
+        <br>
+        
+        {% for timeslot in timeslots %}
+            <button
+            type="button"
+            class="timeslot-button"
+            data-start="{{ timeslot.start_time|date:'H:i' }}"
+            data-end="{{ timeslot.end_time|date:'H:i' }}"
+            data-slot-id="{{ timeslot.id }}"
+            >
+                {{timeslot}}
+            </button>
+        {% endfor %}
+            
+        
+        <p>開始時間 {{ form.start_time }}</p>
+        <p>終了時間 {{ form.end_time }} </p>
+        <!--シフト枠のidを取得するための隠しinput欄-->
+       {{ forms.shift_time_slot }}
+        <button type="submit">シフト登録</button>
+        </form>
+
+    {% endblock %}
+<script>
+    const startInput = document.querySelector("#start_time");
+    const endInput = document.querySelector("#end_time");
+    const buttons = document.querySelectorAll(".timeslot-button");
+    const slotInput = document.querySelector("#shift_time_slot");
+    buttons.forEach(function(button) {
+        button.addEventListener("click",function(){
+            startInput.value = button.dataset.start ;
+            endInput.value = button.dataset.end;
+            slotInput.value = button.dataset.slotId;
+        });
+    });
+    
+</script>
+</body>
+
+</html>

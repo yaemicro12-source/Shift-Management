@@ -1,0 +1,54 @@
+
+{% block content %}
+    <h1>{{ month }}月{{ day }}日</h1>
+    <h2>{{ staff_name }}さん</h2>
+    {% for shift in shifts %}
+        <span>今日のシフト：</span>
+        {% if shift.work_date.day == day %}
+            <span>【</span>{{ shift.store }}<span>】</span>
+            {{ shift.start_time }}
+            <span>～</span>
+            {{ shift.end_time }}
+            {% endif %}
+    {% endfor %}
+
+    <table>
+    <thead>
+        <tr>
+            <th>月</th>
+            <th>火</th>
+            <th>水</th>
+            <th>木</th>
+            <th>金</th>
+            <th>土</th>
+            <th>日</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for week in weeks %}
+            <tr>
+                {% for day in week %}
+                    {% if day == 0 %}
+                        <td></td>
+                    {% else %}
+                        <td>
+                        <div>{{ day }}</div>
+                        {% for shift in shifts %}
+                            {% if shift.work_date.day == day %}
+                            {{ shift.store }}
+                            {{ shift.start_time }}
+                            {{ shift.end_time }}
+                            {% endif %}
+                        {% endfor %}
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<p><a href="{% url 'shift_management:sift_submission' %}">シフト提出</a></p>
+{% endblock %}

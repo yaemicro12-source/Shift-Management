@@ -1,0 +1,13 @@
+# データベース
+db.sqlite3
+
+# 秘密情報
+.env
+
+# Pythonの一時ファイル
+__pycache__/
+*.pyc
+
+# 仮想環境
+.venv/
+venv/

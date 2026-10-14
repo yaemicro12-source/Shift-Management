@@ -1,0 +1,126 @@
+/* =========================
+   シフト編集画面：配置グラフ
+   ========================= */
+
+
+/* グラフ全体
+   左の時間軸と右のスタッフ欄を横並びにする */
+.shift-chart {
+    display: flex;
+}
+
+
+/* =========================
+   左側：時間軸
+   ========================= */
+
+
+/* 時間を表示する列 */
+.time-axis {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+
+/* 「時間」とスタッフ名の見出し */
+.chart-header {
+    height: 40px;
+
+    border: 1px solid #999;
+
+    text-align: center;
+
+    /* 高さにborderを含める */
+    box-sizing: border-box;
+}
+
+
+/* 10:00、11:00などの時刻表示 */
+.time-label {
+    height: 60px;
+
+    border-bottom: 1px solid #999;
+
+    /* 高さにborderを含める */
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   右側：スタッフ
+   ========================= */
+
+
+/* スタッフ全員を横並びにするエリア */
+.staff-area {
+    display: flex;
+}
+
+
+/* スタッフ1人分の列 */
+.staff-column {
+    width: 50px;
+    /* スタッフが増えても列幅を縮めない */
+    flex-shrink: 0;
+}
+
+
+/* スタッフ1人分の時間軸全体 */
+.staff-timeline {
+
+    /* 今は10:00～23:00の13時間を仮定
+       13時間 × 60px = 780px */
+    height: 780px;
+
+    border-left: 1px solid #999;
+    border-right: 1px solid #999;
+
+    /* 勤務バーを配置するときの基準にする */
+    position: relative;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   時間の横線
+   ========================= */
+
+
+/* スタッフ欄に1時間ごとの横線を表示 */
+.hour-line {
+    height: 60px;
+
+    border-bottom: 1px solid #999;
+
+    /* border込みで60pxにする */
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   勤務バー
+   ========================= */
+
+
+/* スタッフの勤務時間を表す縦棒 */
+.shift-bar {
+    /* staff-timelineを基準に配置する */
+    position: absolute;
+
+    /* スタッフ列の左右に余白を作る */
+    left: 0px;
+    right: 0px;
+
+    /* 仮：
+       10:00から45px下
+       → 10:45開始 */
+    top: 45px;
+
+    /* 仮：
+       180px = 3時間
+       → 13:45終了 */
+    height: 180px;
+
+    background-color: #aaa;
+}

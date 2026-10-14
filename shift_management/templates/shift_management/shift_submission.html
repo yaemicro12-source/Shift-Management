@@ -1,0 +1,37 @@
+
+{% block content %}
+
+
+<h1>シフト提出</h1>
+<h2>{{ year }}<span>年</span>{{ month }}</h2>
+
+<table>
+    <tr>
+        <th>日付</th>
+        <th>曜日</th>
+        <th>{{ submission_type }}</th> 
+        <th>出勤可能時間</th>
+        <th>メモ</th>
+    </tr>
+    {% for item in days %}
+    <tr>
+        <td>{{ item.day }}</td>
+        <td>{{ item.weekday }}</td>
+        <td><input type="checkbox"></td>
+        <td>
+            <input type="time">
+            ～
+            <input type="time">
+        </td>
+        <td>
+            <textarea></textarea>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<button type="submit">提出</button>
+
+
+<p><a href="{% url 'shift_management:staff_main' %}">メインページ</a></p>
+{% endblock %}
