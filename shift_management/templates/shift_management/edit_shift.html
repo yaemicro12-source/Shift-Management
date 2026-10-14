@@ -87,14 +87,11 @@
 
         <!-- シフト枠入力欄 -->
         <p>{{year}}年{{month}}月{{day}}日のシフト</p>
-        {% if error %}
-            <p>{{ error }}</p>
-        {% endif %}
         <form method="post">
         {{ form.work_date }}      
         {% csrf_token %}
-        {{ form.errors }}
         {{ form.staff }}
+        {{ form.staff.errors }}
         <br>
         {{ form.store }}
 
@@ -114,6 +111,7 @@
             
         
         <p>開始時間 {{ form.start_time }}</p>
+        {{ form.start_time.errors }}
         <p>終了時間 {{ form.end_time }} </p>
         <!--シフト枠のidを取得するための隠しinput欄-->
        {{ forms.shift_time_slot }}

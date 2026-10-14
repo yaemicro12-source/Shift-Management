@@ -39,5 +39,10 @@ class ShiftAssignmentForm(forms.ModelForm):
                 if start_time>=end_time:
                      self.add_error("start_time","開始時間が不正です")
             return cleaned_data
-
+        
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.fields["staff"].label_from_instance = lambda staff: staff.name
+            self.fields["staff"].empty_label = "スタッフ"
+            self.fields["store"].empty_label = "店舗"
 
