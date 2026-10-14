@@ -6,7 +6,7 @@ from .models import ShiftAssignment
 from .models import StaffProfile ,Store,ShiftTimeSlot
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -158,9 +158,18 @@ def edit_shift(request):
         )
 
     if request.method == "POST":
-        form = ShiftAssignmentForm(request.POST)
+        action = request.POST.get("action")
 
-        if form.is_valid():
+        if action == "delete" and selected_shift is not None:
+            selected_shift.delete()
+            return redirect("shift_management:edit_shift")
+
+        form = ShiftAssignmentForm(
+            request.POST,
+            instance=selected_shift
+        )
+
+        if action == "save" and form.is_valid():
             shift = form.save(commit=False)
             shift.status = 1
             shift.save()
@@ -186,11 +195,6 @@ def edit_shift(request):
 
     context["form"] = form
 
-    if request.method == "POST":
-        form = ShiftAssignmentForm(
-            request.POST,
-            instance=selected_shift
-        )
     
     return render(
         request,'shift_management/edit_shift.html',context

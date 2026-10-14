@@ -119,7 +119,14 @@
         <!--シフト枠のidを取得するための隠しinput欄-->
        {{ form.shift_time_slot }}
         <button type="submit" name="action" value="save">シフト登録・変更を反映</button>
-        <button type="submit" name="action" value="delete">削除</button>
+        <button
+            type="submit"
+            name="action"
+            value="delete"
+            onclick="return confirm('このシフトを削除しますか？')"
+        >
+            削除
+        </button>
         </form>
 
     {% endblock %}
