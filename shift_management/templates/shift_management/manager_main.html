@@ -2,10 +2,12 @@
 {% block content %}
     <h1>{{ month }}月{{ day }}日</h1>
     <h2>{{ staff_name }}さん</h2>
+    <span>今日のシフト：</span>
     {% for shift in shifts %}
-        <span>今日のシフト：</span>
+        
         {% if shift.work_date.day == day %}
             <span>【</span>{{ shift.store }}<span>】</span>
+            
             {{ shift.start_time }}
             <span>～</span>
             {{ shift.end_time }}
@@ -37,7 +39,9 @@
                         {% for shift in shifts %}
                             {% if shift.work_date.day == day %}
                             {{ shift.store }}
+                            <br>
                             {{ shift.start_time }}
+                            <span>～</span>
                             {{ shift.end_time }}
                             {% endif %}
                         {% endfor %}
