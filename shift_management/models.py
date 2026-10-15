@@ -96,6 +96,7 @@ class StaffProfile(models.Model):
         verbose_name = "最低シフト提出日数"
     ) # 最低シフト提出日数
     show_submission_warning = models.BooleanField(
+        
         default=True,
         verbose_name = "提出不足時の警告"
     )# 提出不足警告を表示するか

@@ -2,26 +2,63 @@
     <body>
     <h1>従業員登録</h1>
         <form method="post">
-        {{ form.errors }}
         {% csrf_token %}
-            従業員番号<input type="text" name="username" id="username">
+            <label for="password">
+            従業員番号<input type="text" name="username" id="username"></label>
+            {{ form.username.errors }}
+
             <br>
             <label for="password">初期パスワード</label>
-<input type="password" id="password" name="password" minlength="8" required>
+            
+            <input type="password" id="password" name="password" minlength="8" required>
+            {{ form.password.errors }}
             <br>
             氏名<input type="text" name="name" id="name" ><input type="text" name="firstname" id="fastname">
+            {{ form.name.errors }}            
             <br>
             <br>
             入社日<input type="date" name="joined_on" id="joined_on">
+            {{ form.joined_on.errors }}  
             <br>
             <br>
             終電時間<input type="time" name="last_train_departure_time" id="last_train_departure_time">
             <br>
+            <p>
+                時給<input type="text" name="hourly_wage" id="hourly_wage">
+                <br>
+                    {{ form.hourly_wage.errors }}
+            </p>
             <br>
             <label>
                 <input type="checkbox" name="is_trainee" id="is_trainee" value="1">研修中
             </label>
+            <p>権限区分
+                <label>
+                    <input type="radio" name="role" value="1">
+                        一般従業員
+                    </label>
+
+                    <label>
+                        <input type="radio" name="role" value="2">
+                        管理者
+                    </label>
+                    {{ form.role.errors }}
+                    </p>
             <br>
+            <p>
+                シフト提出方法
+                <br>
+                <label>
+                    <input type="radio" name="submission_type" value="1">
+                        出勤可能な日を選択（出勤日数の少ないスタッフ向け）
+                    </label>
+                    {{ form.submission_type.errors }}
+            </p>
+            <p>
+            <br>
+            最低シフト提出日数<input type="text" name="minimum_available_days" id="minimum_available_days">
+            {{ form.minimum_available_days.errors }}
+            </p>
             <br>
             シフトカラー<input type="color" name="color" id="color">
             <br>
@@ -32,40 +69,16 @@
             <details>
                 <summary>詳細登録</summary>
                 <br>
-                    <p>権限区分
-                    <label>
-                        <input type="radio" name="role" value="1">
-                        一般従業員
-                    </label>
 
-                    <label>
-                        <input type="radio" name="role" value="2">
-                        管理者
-                    </label>
-                    </p>
-                    <p>
-                    <br>
-                    時給<input type="text" name="hourly_wage" id="hourly_wage">
-                    <br>
-                    </p>
+                    
 
-                    <p>
-                    <br>
-                    シフト提出方法
-                    <br>
-                    <label>
-                        <input type="radio" name="submission_type" value="1">
-                        出勤可能な日を選択（出勤日数の少ないスタッフ向け）
-                    </label>
+                    
                     <br>
                     <label>
                         <input type="radio" name="submission_type" value="2">
                         休みの希望を選択（出勤日数の多いスタッフ向け）
                     </label>
-                    </p>
-                    <p>
-                    <br>
-                    最低シフト提出日数<input type="text" name="minimum_available_days" id="minimum_available_days">
+                    
                     <p>提出日数不足の警告の有無</p>
                     <label>
                         <input type="radio" name="show_submission_warning" id="show_submission_warning_true" value="True">

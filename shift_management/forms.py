@@ -47,8 +47,13 @@ class ShiftAssignmentForm(forms.ModelForm):
             self.fields["store"].empty_label = "店舗"
             self.fields["staff"].required = True
             self.fields["store"].required = True
+            
 
 class StaffProfileForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            for field in self.fields.values():
+                field.error_messages["required"] = "この項目は必須です。"
 
         username = forms.CharField(max_length=150)
         password = forms.CharField(
@@ -87,12 +92,17 @@ class StaffProfileForm(forms.ModelForm):
         show_submission_warning = forms.TypedChoiceField(
             choices=[(True, "有り"), (False, "無し")],
             coerce=lambda value: value == "True",
-            widget=forms.RadioSelect
+            widget=forms.RadioSelect,
+            initial=True,
+            required=False,
+            empty_value=True
         )
 
         def clean_username(self):
             
             self.username = self.cleaned_data.get("username")
             if User.objects.filter(username=self.username).exists():
-                    forms.ValidationError("username","従業員番号がすでに登録されています")
+                raise forms.ValidationError("従業員番号がすでに登録されています")
             return self.username
+
+        
