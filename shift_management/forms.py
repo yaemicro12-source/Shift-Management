@@ -1,5 +1,5 @@
 from django import forms
-from .models import ShiftAssignment
+from .models import ShiftAssignment,ShiftProfile
 
 class ShiftAssignmentForm(forms.ModelForm):
         class Meta:
@@ -47,3 +47,35 @@ class ShiftAssignmentForm(forms.ModelForm):
             self.fields["store"].empty_label = "店舗"
             self.fields["staff"].required = True
             self.fields["store"].required = True
+
+class StaffProfileForm(forms.ModelForm):
+        class Meta:
+            model = ShiftProfile
+            fields = [
+                "username",
+                "name",
+                "joined_on",
+                "last_train_departure_time",
+                "is_trainee",
+                "color",
+                "note",
+                "role",
+                "hourly_wage",
+                "submission_type",
+                "minimum_available_days",
+                "show_submissinon_warning",
+                "is_position_holder",
+                "can_view_shortage",
+                "shift_priority",
+                "training_end_date",
+                "probation_end_date",
+                "annual_income_limit",
+                "desired_monthly_minutes"
+            ]
+
+                 
+        show_submission_warning = forms.TypedChoiceField(
+            choices=[(True, "有り"), (False, "無し")],
+            coerce=lambda value: value == "True",
+            widget=forms.RadioSelect
+        )
