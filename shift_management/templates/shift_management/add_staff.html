@@ -2,6 +2,7 @@
     <body>
     <h1>従業員登録</h1>
         <form method="post">
+        {{ form.errors }}
         {% csrf_token %}
             従業員番号<input type="text" name="username" id="username">
             <br>

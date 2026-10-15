@@ -1,5 +1,5 @@
 from django import forms
-from .models import ShiftAssignment,StaffProfile
+from .models import ShiftAssignment,StaffProfile,User
 
 class ShiftAssignmentForm(forms.ModelForm):
         class Meta:
@@ -56,7 +56,7 @@ class StaffProfileForm(forms.ModelForm):
         min_length=8,
         label="初期パスワード"
         )
-        
+
         class Meta:
             model = StaffProfile
             fields = [
@@ -89,3 +89,10 @@ class StaffProfileForm(forms.ModelForm):
             coerce=lambda value: value == "True",
             widget=forms.RadioSelect
         )
+
+        def clean_username(self):
+            
+            self.username = self.cleaned_data.get("username")
+            if User.objects.filter(username=self.username).exists():
+                    forms.ValidationError("username","従業員番号がすでに登録されています")
+            return self.username

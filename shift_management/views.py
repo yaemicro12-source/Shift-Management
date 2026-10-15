@@ -7,6 +7,7 @@ from .models import StaffProfile ,Store,ShiftTimeSlot
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm,StaffProfileForm
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.models import User
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -233,29 +234,25 @@ def add_staff(request):
     if request.method == "POST":
         form = StaffProfileForm(request.POST)
         if form.is_valid():
-                
-                user = User.objects.create_user(
-                username=form.cleaned_data["username"],
+            username = form.cleaned_data["username"]
+               
+            user = User.objects.create_user(
+                username=username,
                 password=form.cleaned_data["password"]
-                )
-                if User.objects.filter(username=user).exists():
-                    #保存をしない
-
+            )
                 #ユーザーに関連付ける
-                staff = form.save(commit=False)
-                staff.user = user
-                staff.save()
-                return redirect("shift_management:all_staff")
+            staff = form.save(commit=False)
+            staff.user = user
+            staff.save()
+            return redirect("shift_management:all_staff")
     else:
         form = StaffProfileForm()
 
-    
-
-
     return render(
-        request,"shift_management/add_staff.html",
+        request,
+        "shift_management/add_staff.html",
+        {"form": form}
     )
-
 def edit_staff(request, staff_id):
     """従業員編集"""
     staff = StaffProfile.objects.get(id=staff_id)
