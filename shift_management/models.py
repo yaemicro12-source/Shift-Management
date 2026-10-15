@@ -70,6 +70,10 @@ class StaffProfile(models.Model):
         max_length=100,
         verbose_name="スタッフ名"
     )
+    firstname = models.CharField(
+            max_length=100,
+            verbose_name="スタッフ下の名前"
+        )
     #ユーザーの名前
     role = models.IntegerField( 
         choices=ROLE_CHOICES,

@@ -1,13 +1,13 @@
 
 {% block content %}
-<h1>従業員編集ページ</h1>
+
     <body>
-    <h1>従業員登録</h1>
+    <h1>従業員編集ページ</h1>
         <form>
             従業員番号<input type="text" name="id" id="id">
             <br>
             <br>
-            氏名<input type="text" name="name" id="name" ><input type="text" name="fastname" id="fastname">
+            氏名<input type="text" name="name" id="name" ><input type="text" name="firstname" id="fastname">
             <br>
             <br>
             入社日<input type="date" name="joind_on" id="joind_on">
@@ -17,6 +17,9 @@
         </form>
         <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
         <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
+
+        <button type="submit">更新</button>
+        <button type="submit">削除</button>
 
     </body>
 
