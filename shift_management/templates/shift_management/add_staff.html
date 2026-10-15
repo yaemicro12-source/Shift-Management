@@ -8,10 +8,10 @@
             氏名<input type="text" name="name" id="name" ><input type="text" name="firstname" id="fastname">
             <br>
             <br>
-            入社日<input type="date" name="joind_on" id="joind_on">
+            入社日<input type="date" name="joined_on" id="joined_on">
             <br>
             <br>
-            終電時間<input type="time" name="train_time" id="train_time">
+            終電時間<input type="time" name="last_train_departure_time" id="last_train_departure_time">
             <br>
             <br>
             <label>
@@ -22,7 +22,7 @@
             シフトカラー<input type="color" name="color" id="color">
             <br>
             <br>
-            メモ<textarea name="memo" id="memo"></textarea>
+            メモ<textarea name="note" id="note"></textarea>
             <br>
             <br>
             <details>
@@ -41,7 +41,7 @@
                     </p>
                     <p>
                     <br>
-                    時給<input type="text" name="wage" id="wage">
+                    時給<input type="text" name="hourly_wage" id="hourly_wage">
                     <br>
                     </p>
 
@@ -68,18 +68,18 @@
                         有り
                     </label>
                     <label>
-                        <input type="radio" name="show_submission_warning" id="show_submission_warning_fails" value="2">
+                        <input type="radio" name="show_submission_warning" id="show_submission_warning_false" value="2">
                         無し
                     </label>
                     </p>
                     <p>権限
                         <br>
                     <label>
-                        <input type="checkbox" name="position_holder" id="position_holder" value="1">役職者か
+                        <input type="checkbox" name="is_position_holder" id="is_position_holder" value="1">役職者か
                     </label>
                     <br>
                     <label>
-                        <input type="checkbox" name="can_view_shift" id="can_view_shift" value="2">全体シフトの閲覧権限
+                        <input type="checkbox" name="can_view_all_shifts" id="can_view_all_shifts" value="2">全体シフトの閲覧権限
                     </label>
                     <br>
                     <label>
@@ -99,9 +99,8 @@
                     <br>
                     年間収入上限<input type="text" name="annual_max_minutes" id="annual_max_minutes">
                     <br>
-                    本人が希望する月の勤務時間<input type="text" name="desired_monthly_minutes" id="desired_monthly_minutes">
-                    </p>
-                    
+                    本人が希望する月の勤務時間<input type="text" name="annual_income_limit" id="annual_income_limit">
+                    </p>   
             </details>
             <br>
             <br>

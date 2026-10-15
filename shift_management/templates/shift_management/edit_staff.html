@@ -3,6 +3,7 @@
 
     <body>
     <h1>従業員編集ページ</h1>
+        
         <form>
             従業員番号<input type="text" name="id" id="id">
             <br>
@@ -14,9 +15,101 @@
             <br>
             <br>
             終電時間<input type="time" name="train_time" id="train_time">
+            <br>
+            <br>
+            <label>
+                <input type="checkbox" name="is_trainee" id="is_trainee" value="1">研修中
+            </label>
+            <br>
+            <br>
+            シフトカラー<input type="color" name="color" id="color">
+            <br>
+            <br>
+            メモ<textarea name="memo" id="memo"></textarea>
+            <br>
+            <br>
+            <details>
+                <summary>詳細登録</summary>
+                <br>
+                    <p>権限区分
+                    <label>
+                        <input type="radio" name="role" value="1">
+                        一般従業員
+                    </label>
+
+                    <label>
+                        <input type="radio" name="role" value="2">
+                        管理者
+                    </label>
+                    </p>
+                    <p>
+                    <br>
+                    時給<input type="text" name="wage" id="wage">
+                    <br>
+                    </p>
+
+                    <p>
+                    <br>
+                    シフト提出方法
+                    <br>
+                    <label>
+                        <input type="radio" name="submission_type" value="1">
+                        出勤可能な日を選択（出勤日数の少ないスタッフ向け）
+                    </label>
+                    <br>
+                    <label>
+                        <input type="radio" name="submission_type" value="2">
+                        休みの希望を選択（出勤日数の多いスタッフ向け）
+                    </label>
+                    </p>
+                    <p>
+                    <br>
+                    最低シフト提出日数<input type="text" name="minimum_available_days" id="minimum_available_days">
+                    <p>提出日数不足の警告の有無</p>
+                    <label>
+                        <input type="radio" name="show_submission_warning" id="show_submission_warning_true" value="1">
+                        有り
+                    </label>
+                    <label>
+                        <input type="radio" name="show_submission_warning" id="show_submission_warning_false" value="2">
+                        無し
+                    </label>
+                    </p>
+                    <p>権限
+                        <br>
+                    <label>
+                        <input type="checkbox" name="position_holder" id="position_holder" value="1">役職者か
+                    </label>
+                    <br>
+                    <label>
+                        <input type="checkbox" name="can_view_shift" id="can_view_shift" value="2">全体シフトの閲覧権限
+                    </label>
+                    <br>
+                    <label>
+                        <input type="checkbox" name="can_view_shortage" id="can_view_shortage" value="3">不足枠の閲覧権限
+                    </label>
+                    <br>
+                    <label>
+                        <input type="checkbox" name="shift_priority" id="shift_priority" value="4">シフト優先
+                    </label>
+                    </p>
+
+                    <p>
+                    <br>
+                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date">
+                    <br>
+                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date">
+                    <br>
+                    年間収入上限<input type="text" name="annual_max_minutes" id="annual_max_minutes">
+                    <br>
+                    本人が希望する月の勤務時間<input type="text" name="desired_monthly_minutes" id="desired_monthly_minutes">
+                    </p>
+                    
+            </details>
+            <br>
+            
             <button type="submit">更新</button>
             <button type="submit">削除</button>
-
         </form>
         <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
         <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
