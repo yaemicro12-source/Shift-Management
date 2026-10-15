@@ -5,7 +5,7 @@ import calendar
 from .models import ShiftAssignment
 from .models import StaffProfile ,Store,ShiftTimeSlot
 from django.http import HttpResponseBadRequest
-from .forms import ShiftAssignmentForm
+from .forms import ShiftAssignmentForm,StaffProfileForm
 from django.shortcuts import render, get_object_or_404, redirect
 
 def get_calendar_data(year = None,month = None,day = None): 
@@ -230,6 +230,27 @@ def all_staff(request):
 
 def add_staff(request):
     """従業員追加"""
+    if request.method == "POST":
+        form = StaffProfileForm(request.POST)
+        if form.is_valid():
+                
+                user = User.objects.create_user(
+                username=form.cleaned_data["username"],
+                password=form.cleaned_data["password"]
+                )
+                if User.objects.filter(username=user).exists():
+                    #保存をしない
+
+                #ユーザーに関連付ける
+                staff = form.save(commit=False)
+                staff.user = user
+                staff.save()
+                return redirect("shift_management:all_staff")
+    else:
+        form = StaffProfileForm()
+
+    
+
 
     return render(
         request,"shift_management/add_staff.html",

@@ -4,7 +4,8 @@
     <body>
     <h1>従業員編集ページ</h1>
         
-        <form>
+        <form method="post">
+        {% csrf_token %}
             従業員番号<input type="text" name="id" id="id">
             <br>
             <br>

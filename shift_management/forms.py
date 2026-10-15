@@ -51,7 +51,12 @@ class ShiftAssignmentForm(forms.ModelForm):
 class StaffProfileForm(forms.ModelForm):
 
         username = forms.CharField(max_length=150)
-
+        password = forms.CharField(
+        widget=forms.PasswordInput,
+        min_length=8,
+        label="初期パスワード"
+        )
+        
         class Meta:
             model = StaffProfile
             fields = [

@@ -1,9 +1,12 @@
 {% block content %}
     <body>
     <h1>従業員登録</h1>
-        <form>
+        <form method="post">
+        {% csrf_token %}
             従業員番号<input type="text" name="username" id="username">
             <br>
+            <label for="password">初期パスワード</label>
+<input type="password" id="password" name="password" minlength="8" required>
             <br>
             氏名<input type="text" name="name" id="name" ><input type="text" name="firstname" id="fastname">
             <br>
