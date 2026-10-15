@@ -2,14 +2,20 @@
     <body>
     <h1>従業員登録</h1>
         <form>
-            <textbox name="id" id="id">従業員番号</textbox>
-            <textbox name="name" id="name" >名前</textbox>
-            <input type="date" name="joind_on" id="joind_on">入社日
-            <input type="time" name="train_time" id="train_time">終電時間
+            従業員番号<input type="text" name="id" id="id">
+            <br>
+            <br>
+            氏名<input type="text" name="name" id="name" ><input type="text" name="fastname" id="fastname">
+            <br>
+            <br>
+            入社日<input type="date" name="joind_on" id="joind_on">
+            <br>
+            <br>
+            終電時間<input type="time" name="train_time" id="train_time">
             <!--ここに詳細ボタンを置いて押した場合のみ表示されるようにしたい-->
 
         </form>
-
+        <br>
         <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
         <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
 
