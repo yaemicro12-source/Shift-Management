@@ -1,5 +1,5 @@
 from django import forms
-from .models import ShiftAssignment,ShiftProfile
+from .models import ShiftAssignment,StaffProfile
 
 class ShiftAssignmentForm(forms.ModelForm):
         class Meta:
@@ -49,11 +49,15 @@ class ShiftAssignmentForm(forms.ModelForm):
             self.fields["store"].required = True
 
 class StaffProfileForm(forms.ModelForm):
+
+        username = forms.CharField(max_length=150)
+
         class Meta:
-            model = ShiftProfile
+            model = StaffProfile
             fields = [
-                "username",
+                
                 "name",
+                "firstname",
                 "joined_on",
                 "last_train_departure_time",
                 "is_trainee",
@@ -63,7 +67,8 @@ class StaffProfileForm(forms.ModelForm):
                 "hourly_wage",
                 "submission_type",
                 "minimum_available_days",
-                "show_submissinon_warning",
+                "show_submission_warning",
+                "can_view_all_shifts",
                 "is_position_holder",
                 "can_view_shortage",
                 "shift_priority",
