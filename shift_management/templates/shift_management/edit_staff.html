@@ -1,19 +1,12 @@
 {% block content %}
     <body>
-    <h1>従業員登録</h1>
+    <h1>従業員編集</h1>
         <form method="post" autocomplete="off">
         {% csrf_token %}
             
-            従業員番号<input type="text" name="username" id="username" value="{{ staff.username }}"></label>
-            {{ form.username.errors }}
-
+            従業員番号：{{ staff.user.username }}
             <br>
-            <label for="password">初期パスワード</label>
-            
-            <input type="password" id="password" name="password" minlength="8" required>
-            {{ form.password.errors }}
-            <br>
-            氏名<input type="text" name="name" value="{{ staff.name }}"><input type="text" name="firstname" id="fastname">
+            氏名<input type="text" name="name" value="{{ staff.name }}"><input type="text" name="firstname" id="fastname" value="{{ staff.firstname }}">
             {{ form.name.errors }}            
             <br>
             <br>
@@ -30,7 +23,7 @@
             </p>
             <br>
             <label>
-                <input type="checkbox" name="is_trainee" id="is_trainee" value="1">研修中
+                <input type="checkbox" name="is_trainee" id="is_trainee" value="1" {% if staff.is_trainee %}checked{%endif%}>研修中
             </label>
             <p>権限区分
                 <label>
@@ -72,7 +65,7 @@
             シフトカラー<input type="color" name="color" id="color" value="{{ staff.color }}">
             <br>
             <br>
-            メモ<textarea name="note" id="note" value="{{ staff.note }}"></textarea>
+            メモ<textarea name="note" id="note" >{{ staff.note }}</textarea>
             <br>
             <br>
             <details>
@@ -111,9 +104,9 @@
 
                     <p>
                     <br>
-                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date" value="{{ staff.training_end_date\|'Y-m-d' }}">
+                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date" value="{{ staff.training_end_date\|date:'Y-m-d' }}">
                     <br>
-                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date" value="{{ staff.probation_end_date\|'Y-m-d' }}">
+                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date" value="{{ staff.probation_end_date\|date:'Y-m-d' }}">
                     <br>
                     年間収入上限<input type="text" name="annual_income_limit" id="annual_income_limit" value="{{ staff.annual_income_limit }}">
                     <br>
