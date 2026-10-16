@@ -1,9 +1,9 @@
 {% block content %}
     <body>
     <h1>従業員登録</h1>
-        <form method="post">
+        <form method="post" autocomplete="off" >
         {% csrf_token %}
-            <label for="password">
+            
             従業員番号<input type="text" name="username" id="username"></label>
             {{ form.username.errors }}
 
@@ -52,6 +52,11 @@
                     <input type="radio" name="submission_type" value="1">
                         出勤可能な日を選択（出勤日数の少ないスタッフ向け）
                     </label>
+                    <br>
+                    <label>
+                        <input type="radio" name="submission_type" value="2">
+                        休みの希望を選択（出勤日数の多いスタッフ向け）
+                    </label>
                     {{ form.submission_type.errors }}
             </p>
             <p>
@@ -69,16 +74,7 @@
             <details>
                 <summary>詳細登録</summary>
                 <br>
-
-                    
-
-                    
                     <br>
-                    <label>
-                        <input type="radio" name="submission_type" value="2">
-                        休みの希望を選択（出勤日数の多いスタッフ向け）
-                    </label>
-                    
                     <p>提出日数不足の警告の有無</p>
                     <label>
                         <input type="radio" name="show_submission_warning" id="show_submission_warning_true" value="True">
