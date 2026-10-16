@@ -10,11 +10,11 @@
             {{ form.name.errors }}            
             <br>
             <br>
-            入社日<input type="date" name="joined_on" id="joined_on" value="{{ staff.joined_on\|date:'Y-m-d' }}">
+            入社日<input type="date" name="joined_on" id="joined_on" value="{{ staff.joined_on|date:'Y-m-d' }}">
             {{ form.joined_on.errors }}  
             <br>
             <br>
-            終電時間<input type="time" name="last_train_departure_time" id="last_train_departure_time" value="{{ staff.last_train_departure_time\|time:'H:i' }}">
+            終電時間<input type="time" name="last_train_departure_time" id="last_train_departure_time" value="{{ staff.last_train_departure_time|time:'H:i' }}">
             <br>
             <p>
                 時給<input type="text" name="hourly_wage" id="hourly_wage" value="{{ staff.hourly_wage }}">
@@ -74,12 +74,12 @@
                     <p>提出日数不足の警告の有無</p>
                     <label>
                         <input type="radio" name="show_submission_warning" id="show_submission_warning_true" value="True"
-                        {% if staff.show_submission_warning ==True %}checked{% endif %}>
+                        {% if staff.show_submission_warning == True %}checked{% endif %}>
                         有り
                     </label>
                     <label>
                         <input type="radio" name="show_submission_warning" id="show_submission_warning_false" value="False"
-                        {% if staff.show_submission_warning ==False %}checked{% endif %}>
+                        {% if staff.show_submission_warning == False %}checked{% endif %}>
                         無し
                     </label>
                     </p>
@@ -104,20 +104,25 @@
 
                     <p>
                     <br>
-                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date" value="{{ staff.training_end_date\|date:'Y-m-d' }}">
+                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date" value="{{ staff.training_end_date|date:'Y-m-d' }}">
                     <br>
-                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date" value="{{ staff.probation_end_date\|date:'Y-m-d' }}">
+                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date" value="{{ staff.probation_end_date|date:'Y-m-d' }}">
                     <br>
-                    年間収入上限<input type="text" name="annual_income_limit" id="annual_income_limit" value="{{ staff.annual_income_limit }}">
+                    年間収入上限<input type="text" name="annual_income_limit" id="annual_income_limit" value="{{ staff.annual_income_limit|default_if_none:'' }}">
                     <br>
-                    本人が希望する月の勤務時間<input type="text" name="desired_monthly_minutes" id="desired_monthly_minutes" value="{{ staff.desired_monthly_minutes }}">
+                    本人が希望する月の勤務時間<input type="text" name="desired_monthly_minutes" id="desired_monthly_minutes" value="{{ staff.desired_monthly_minutes|default_if_none:'' }}">
                     </p>   
             </details>
             <br>
             <br>
             
             <button type="submit">更新</button>
-            <button type="submit">削除</button>
+            <button type="submit"
+                name="action"
+                value="retire"
+                onclick="return confirm('この従業員を退職扱いにしますか？')">
+                退職
+            </button>
         </form>
         <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
         <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>

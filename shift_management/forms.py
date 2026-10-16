@@ -105,4 +105,28 @@ class StaffProfileForm(forms.ModelForm):
                 raise forms.ValidationError("従業員番号がすでに登録されています")
             return self.username
 
-        
+class StaffEditForm(forms.ModelForm):
+    class Meta:
+        model = StaffProfile
+        fields = [
+            "name",
+            "firstname",
+            "joined_on",
+            "last_train_departure_time",
+            "is_trainee",
+            "color",
+            "note",
+            "role",
+            "hourly_wage",
+            "submission_type",
+            "minimum_available_days",
+            "show_submission_warning",
+            "can_view_all_shifts",
+            "is_position_holder",
+            "can_view_shortage",
+            "shift_priority",
+            "training_end_date",
+            "probation_end_date",
+            "annual_income_limit",
+            "desired_monthly_minutes",
+        ]

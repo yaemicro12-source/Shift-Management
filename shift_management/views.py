@@ -5,7 +5,7 @@ import calendar
 from .models import ShiftAssignment
 from .models import StaffProfile ,Store,ShiftTimeSlot
 from django.http import HttpResponseBadRequest
-from .forms import ShiftAssignmentForm,StaffProfileForm
+from .forms import ShiftAssignmentForm,StaffProfileForm,staffEditForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
 
@@ -253,12 +253,29 @@ def add_staff(request):
         "shift_management/add_staff.html",
         {"form": form}
     )
+
 def edit_staff(request, staff_id):
     """従業員編集"""
     staff = StaffProfile.objects.get(id=staff_id)
+ 
+    if request.method == "POST":
+            action = request.POST.get("action")
+            if action == "retire":
+                staff.is_active = False
+                staff.save()
+                return redirect("shift_management:all_staff")
+         
+
+            form = StaffEditForm(request.POST,instance=staff)
+            if form.is_valid():
+                staff = form.save()
+                return redirect("shift_management:all_staff")
+    else:
+            form = StaffEditForm(instance=staff)
 
     context = {
         'staff': staff,
+        'form':form,
     }
 
     return render(
