@@ -5,9 +5,10 @@ import calendar
 from .models import ShiftAssignment
 from .models import StaffProfile ,Store,ShiftTimeSlot
 from django.http import HttpResponseBadRequest
-from .forms import ShiftAssignmentForm,StaffProfileForm,staffEditForm
+from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -203,6 +204,21 @@ def edit_shift(request):
 
 def staff_login(request):
     """スタッフログイン画面"""
+    user = authenticate(
+        request,
+        username=従業員番号,
+        password=パスワード
+    )
+    if request.method == "POST":
+            form = StaffLoginForm(request.POST)
+        if user is not None:    
+            if form.is_valid():
+                if staff.role == 1 :
+                    login()
+                elif staff.role == 2 or staff.role == 3:
+                     message.error("管理者ページからログインしてください")
+    else:
+        form = StaffLoginForm()
 
     return render(
         request,'shift_management/staff_login.html',
@@ -217,7 +233,7 @@ def manager_login(request):
 
 def all_staff(request):
     """従業員一覧"""
-    staffs = StaffProfile.objects.all()
+    staffs = StaffProfile.objects.filter(is_active=True)
 
 
     context = {
