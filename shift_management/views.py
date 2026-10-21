@@ -11,6 +11,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from .decorators import manager_required
+from .decorators import manager_required, staff_required
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -37,6 +40,7 @@ def get_calendar_data(year = None,month = None,day = None):
         "year":year
     }
 
+@staff_required
 def staff_main(request):
     """一般ユーザーメイン画面"""
     context = get_calendar_data()
@@ -57,6 +61,7 @@ def staff_main(request):
         context
                   )
 
+@login_required(login_url="shift_management:staff_login")
 def shift_submission(request):
     """シフト提出"""
     today = date.today()
@@ -91,6 +96,7 @@ def shift_submission(request):
         context
     )
 
+@manager_required
 def manager_main(request):
     """管理者ユーザーメイン画面"""
     context = get_calendar_data()
@@ -110,7 +116,7 @@ def manager_main(request):
         request, 'shift_management/manager_main.html',
         context
                   )
-
+@manager_required
 def edit_shift(request):
     """シフト編集画面"""
     today = date.today()
@@ -277,6 +283,7 @@ def manager_login(request):
         {"form": form}
     )
 
+@manager_required
 def all_staff(request):
     """従業員一覧"""
     staffs = StaffProfile.objects.filter(is_active=True)
@@ -291,6 +298,7 @@ def all_staff(request):
         request,"shift_management/all_staff.html",context
     )
 
+@manager_required
 def add_staff(request):
     """従業員追加"""
     if request.method == "POST":
@@ -316,6 +324,7 @@ def add_staff(request):
         {"form": form}
     )
 
+@manager_required
 def edit_staff(request, staff_id):
     """従業員編集"""
     staff = StaffProfile.objects.get(id=staff_id)
