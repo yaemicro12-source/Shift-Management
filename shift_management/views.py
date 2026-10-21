@@ -3,7 +3,7 @@ from django.shortcuts import render
 from datetime import datetime,date
 import calendar
 from .models import ShiftAssignment
-from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope
+from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLoginForm,ManagerLoginForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -15,6 +15,7 @@ from django.core.exceptions import PermissionDenied
 from .decorators import manager_required
 from .decorators import manager_required, staff_required
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -65,6 +66,7 @@ def staff_main(request):
 @login_required(login_url="shift_management:staff_login")
 def shift_submission(request):
     """シフト提出"""
+    availability_list = []
     today = date.today()
     year = today.year
     month = today.month
@@ -74,6 +76,7 @@ def shift_submission(request):
     days = []
     staff = StaffProfile.objects.get(user=request.user)
     submission_type = staff.get_submission_type_display()
+    
 
     for day in range(1, last_day + 1):
         target_date = date(year, month, day)
@@ -91,6 +94,33 @@ def shift_submission(request):
         "year":year,
         "submission_type":submission_type
     }
+
+    if request.method == "POST":
+        for day in range(1,last_day+1):
+            if f"day_{day}" in request.POST:
+                availability_list.append(True)
+            else:
+                availability_list.append(False)
+        if staff.submission_type == 2:
+            availability_list= [not x for x in availability_list]
+        submission_record = ShiftSubmission.objects.create(
+            staff = staff,
+            year = year,
+            month = month,
+            submission_type = staff.submission_type,
+            status = 2,
+            submitted_at = timezone.now()
+        )
+        for day, is_available in enumerate(availability_list, start=1):
+            ShiftPreference.objects.create(
+                submission=submission_record,
+                target_date=date(year, month, day),
+                is_available=is_available,
+                available_start_time=request.POST.get(f"start_{day}") or None,
+                available_end_time=request.POST.get(f"end_{day}") or None,
+                note=request.POST.get(f"note_{day}")
+            )
+
     return render(
         request,
         'shift_management/shift_submission.html',

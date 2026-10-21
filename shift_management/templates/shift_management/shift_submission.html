@@ -3,8 +3,10 @@
 
 
 <h1>シフト提出</h1>
-<h2>{{ year }}<span>年</span>{{ month }}</h2>
+<h2>{{ year }}<span>年</span>{{ month }}月</h2>
 
+<form method="post">
+    {% csrf_token %}
 <table>
     <tr>
         <th>日付</th>
@@ -17,20 +19,21 @@
     <tr>
         <td>{{ item.day }}</td>
         <td>{{ item.weekday }}</td>
-        <td><input type="checkbox"></td>
+        <td><input type="checkbox" name="day_{{ item.day }}"></td>
         <td>
-            <input type="time">
+            <input type="time" name="start_{{ item.day }}">
             ～
-            <input type="time">
+            <input type="time" name="end_{{ item.day }}">
         </td>
         <td>
-            <textarea></textarea>
+            <textarea name="note_{{ item.day }}"></textarea>
         </td>
     </tr>
     {% endfor %}
 </table>
 <br>
 <button type="submit">提出</button>
+</form>
 
 
 <p><a href="{% url 'shift_management:staff_main' %}">メインページ</a></p>
