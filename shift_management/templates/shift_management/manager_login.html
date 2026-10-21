@@ -1,7 +1,17 @@
-<h1>シフトカレンダー</h1>
+<h1>管理者ログインページ</h1>
 
-<p>ID<input type = "text"></p>
-<p>PASS<input type = "password"></p>
-<p>エリアコード<input type = "text"></p>
+
+<form method="post" autocomplete="off">
+    {% csrf_token %}
+    <p>ID<input type = "text" name="username"></p>
+    <p>PASS<input type = "password" name="password"></p>
+    <p>エリアコード<input type="text" name="area_code"></p> 
+    {% for message in messages  %}
+    {{ message }}
+    {% endfor %}
+    {{ form.area_code.errors }}
+    <br>
+    <br>
+    <button type="submit">送信</button>
 
 <p><a href="{% url 'shift_management:staff_login' %}">管理者ログインページ</a></p>

@@ -1,9 +1,14 @@
 <h1>シフトカレンダー</h1>
 
-<form method="post">
+<form method="post" autocomplete="off">
     {% csrf_token %}
     <p>ID<input type = "text" name="username"></p>
     <p>PASS<input type = "password" name="password"></p>
+    {% for message in messages  %}
+    {{ message }}
+    {% endfor %}
+    <br>
+    <br>
     <button type="submit">送信</button>
 </form>
 

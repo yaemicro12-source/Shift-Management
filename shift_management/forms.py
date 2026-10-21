@@ -130,3 +130,16 @@ class StaffEditForm(forms.ModelForm):
             "annual_income_limit",
             "desired_monthly_minutes",
         ]
+
+class StaffLoginForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    password = forms.CharField(widget=forms.PasswordInput)
+
+class ManagerLoginForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    password = forms.CharField(widget=forms.PasswordInput)
+    area_code = forms.CharField(max_length=150)
+    area_code = forms.CharField(
+    max_length=150,
+    error_messages={"required": "エリアコードを入力してください"}
+    )

@@ -3,12 +3,14 @@ from django.shortcuts import render
 from datetime import datetime,date
 import calendar
 from .models import ShiftAssignment
-from .models import StaffProfile ,Store,ShiftTimeSlot
+from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope
 from django.http import HttpResponseBadRequest
-from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm
+from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLoginForm,ManagerLoginForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth import login
+from django.contrib import messages
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -204,31 +206,75 @@ def edit_shift(request):
 
 def staff_login(request):
     """スタッフログイン画面"""
-    user = authenticate(
-        request,
-        username=従業員番号,
-        password=パスワード
-    )
     if request.method == "POST":
-            form = StaffLoginForm(request.POST)
-        if user is not None:    
-            if form.is_valid():
-                if staff.role == 1 :
-                    login()
-                elif staff.role == 2 or staff.role == 3:
-                     message.error("管理者ページからログインしてください")
+        form = StaffLoginForm(request.POST)
+
+        if form.is_valid():
+            username = form.cleaned_data["username"]
+            password = form.cleaned_data["password"]
+            user = authenticate(
+                request,
+                username=username,
+                password=password
+            )
+            if user is not None:
+                staff = user.staffprofile
+                if staff.role == 1:
+                    login(request,user)
+                    return redirect("shift_management:staff_main")
+                else:
+                    messages.error(request,"管理者ログインからログインしてください")
+                    return redirect("shift_management:manager_login")
+            else:
+                messages.error(request,"従業員番号またはパスワードが違います")
     else:
         form = StaffLoginForm()
 
     return render(
-        request,'shift_management/staff_login.html',
+        request,
+        "shift_management/staff_login.html",
+        {"form": form}
     )
 
 def manager_login(request):
     """管理者ログイン"""
+    if request.method == "POST":
+        form = ManagerLoginForm(request.POST)
+
+        if form.is_valid():
+            username = form.cleaned_data["username"]
+            password = form.cleaned_data["password"]
+            area_code = form.cleaned_data["area_code"]
+            user = authenticate(
+                request,
+                username=username,
+                password=password,
+            )
+            if user is not None:
+                staff = user.staffprofile
+                if staff.role  == 2 :
+                    has_permission =ManagementScope.objects.filter(
+                        manager = staff,
+                        area__code = area_code
+                    ).exists()
+
+                    if has_permission:
+                        login(request,user)
+                        return redirect("shift_management:manager_main")
+                    else:
+                        messages.error(request,"エリアコードが一致しません")
+                else:
+                    messages.error(request,"従業員ログインからログインしてください")
+                    return redirect("shift_management:staff_login")
+            else:
+                messages.error(request,"従業員番号またはパスワードが違います")
+    else:
+        form = ManagerLoginForm()
 
     return render(
-        request,"shift_management/manager_login.html",
+        request,
+        "shift_management/manager_login.html",
+        {"form": form}
     )
 
 def all_staff(request):
