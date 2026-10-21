@@ -101,9 +101,11 @@ def shift_submission(request):
                 availability_list.append(True)
             else:
                 availability_list.append(False)
+
         if staff.submission_type == 2:
             availability_list= [not x for x in availability_list]
-        submission_record = ShiftSubmission.objects.create(
+            ShiftSubmission.objects.filter(staff=staff,year=year,month=month).update(is_latest=False)
+            submission_record = ShiftSubmission.objects.create(
             staff = staff,
             year = year,
             month = month,
@@ -111,15 +113,16 @@ def shift_submission(request):
             status = 2,
             submitted_at = timezone.now()
         )
+
         for day, is_available in enumerate(availability_list, start=1):
             ShiftPreference.objects.create(
-                submission=submission_record,
                 target_date=date(year, month, day),
                 is_available=is_available,
                 available_start_time=request.POST.get(f"start_{day}") or None,
                 available_end_time=request.POST.get(f"end_{day}") or None,
                 note=request.POST.get(f"note_{day}")
             )
+        
 
     return render(
         request,
