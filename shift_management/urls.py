@@ -20,4 +20,5 @@ urlpatterns = [
         views.edit_staff,
         name='edit_staff'
     ),
+    path('logout/',views.logout_view,name='logout'),
 ]

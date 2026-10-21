@@ -9,11 +9,12 @@ from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLogin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from django.contrib.auth import login
+from django.contrib.auth import login,logout
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from .decorators import manager_required
 from .decorators import manager_required, staff_required
+from django.views.decorators.http import require_POST
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -354,3 +355,8 @@ def edit_staff(request, staff_id):
         'shift_management/edit_staff.html',
         context
     )
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    return redirect("shift_management:staff_login")

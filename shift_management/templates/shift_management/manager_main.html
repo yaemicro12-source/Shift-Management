@@ -57,4 +57,8 @@
 <p><a href="{% url 'shift_management:sift_submission' %}">シフト提出</a></p>
 <p><a href="{% url 'shift_management:edit_shift' %}">シフト編集</a></p>
 <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
+<form action="{% url 'shift_management:logout' %}" method="post">
+    {% csrf_token %}
+    <button type="submit">ログアウト</button>
+</form>
 {% endblock %}
