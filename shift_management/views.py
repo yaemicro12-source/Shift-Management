@@ -69,8 +69,13 @@ def shift_submission(request):
     """シフト提出"""
     availability_list = []
     today = date.today()
-    year = today.year
-    month = today.month
+
+    if today.month == 12:
+        year = today.year + 1
+        month = 1
+    else:
+        year = today.year
+        month = today.month + 1
     day = today.day
     last_day = calendar.monthrange(year,month)[1] 
     weekdays = ["月", "火", "水", "木", "金", "土", "日"]
@@ -393,11 +398,29 @@ def edit_staff(request, staff_id):
         context
     )
 
+#ログアウト機能
 @require_POST
 def logout_view(request):
     logout(request)
     return redirect("shift_management:staff_login")
 
+#シフト自動生成
 def generate_shift(request):
+    today = date.today()
+    candidates =[]#その日に対して勤務可能なスタッフとデータのみ残す
+
+    if today.month == 12:
+        year = today.year + 1
+        month = 1
+    else:
+        year = today.year
+        month = today.month + 1
+    submissions = ShiftSubmission.objects.filter(is_latest=True,month=month,year=year)
     for submission in submissions:
         preferences = ShiftPreference.objects.filter(submission=submission)
+        for preference in preferences:
+            if preference == True:
+                candidates.append(preference)
+            
+                
+   
