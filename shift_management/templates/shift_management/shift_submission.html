@@ -1,40 +1,447 @@
+
 {% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
 {% block content %}
+<div class="submission-page">
 
+    <h1 class="submission-page-title">シフト提出</h1>
 
-<h1>シフト提出</h1>
-<h2>{{ year }}<span>年</span>{{ month }}月</h2>
+    <section class="submission-card">
+        <div class="submission-card-header">
+            <h2>{{ year }}年{{ month }}月</h2>
+        </div>
 
-<form method="post">
-    {% csrf_token %}
-<table>
-    <tr>
-        <th>日付</th>
-        <th>曜日</th>
-        <th>{{ submission_type }}</th> 
-        <th>出勤可能時間</th>
-        <th>メモ</th>
-    </tr>
-    {% for item in days %}
-    <tr>
-        <td>{{ item.day }}</td>
-        <td>{{ item.weekday }}</td>
-        <td><input type="checkbox" name="day_{{ item.day }}"></td>
-        <td>
-            <input type="time" name="start_{{ item.day }}">
-            ～
-            <input type="time" name="end_{{ item.day }}">
-        </td>
-        <td>
-            <textarea name="note_{{ item.day }}"></textarea>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-<br>
-<button type="submit">提出</button>
-</form>
+        <div class="submission-card-body">
 
+            <!-- 一括適用 -->
+            <details class="bulk-details" id="bulk-details">
+                <summary>一括適用</summary>
 
-<p><a href="{% url 'shift_management:staff_main' %}">メインページ</a></p>
+                <div class="bulk-content">
+
+                    <button
+                        type="button"
+                        class="previous-month-button"
+                        id="load-previous"
+                    >
+                        前月の設定を読み込む
+                    </button>
+
+                    <p id="previous-message" class="bulk-message" hidden></p>
+
+                    <!-- 通常の一括設定 -->
+                    <div class="bulk-section">
+                        <h3>対象日</h3>
+
+                        <label>
+                            <input type="radio" name="bulk_target" value="weekday" checked>
+                            平日すべて（月〜金）
+                        </label>
+
+                        <label>
+                            <input type="radio" name="bulk_target" value="weekend">
+                            土日すべて
+                        </label>
+
+                        <label>
+                            <input type="radio" name="bulk_target" value="all">
+                            すべての日
+                        </label>
+                    </div>
+
+                    <div class="bulk-section">
+                        <h3>操作内容</h3>
+
+                        <label>
+                            <input type="radio" name="bulk_action" value="check" checked>
+                            チェックを入れる
+                        </label>
+
+                        <label>
+                            <input type="radio" name="bulk_action" value="uncheck">
+                            チェックを外す
+                        </label>
+
+                        <label>
+                            <input type="radio" name="bulk_action" value="time">
+                            時間帯のみ変更
+                        </label>
+                    </div>
+
+                    <div class="bulk-section">
+                        <h3>希望時間</h3>
+
+                        <div class="bulk-time-row">
+                            <input type="time" id="bulk-start" value="10:00">
+                            <span>〜</span>
+                            <input type="time" id="bulk-end" value="18:00">
+                        </div>
+                    </div>
+
+                    <!-- 曜日別設定 -->
+                    <details class="weekly-details" id="weekly-details">
+                        <summary>曜日ごとに設定する</summary>
+
+                        <div class="weekly-content">
+                            <h3>曜日を選択</h3>
+
+                            <div class="weekday-buttons">
+                                <button type="button" class="weekday-button is-selected" data-weekday="0">月</button>
+                                <button type="button" class="weekday-button" data-weekday="1">火</button>
+                                <button type="button" class="weekday-button" data-weekday="2">水</button>
+                                <button type="button" class="weekday-button" data-weekday="3">木</button>
+                                <button type="button" class="weekday-button" data-weekday="4">金</button>
+                                <button type="button" class="weekday-button" data-weekday="5">土</button>
+                                <button type="button" class="weekday-button" data-weekday="6">日</button>
+                            </div>
+
+                            <p id="selected-weekday-label">月曜日の詳細設定</p>
+
+                            <div class="bulk-section">
+                                <h3>操作内容</h3>
+
+                                <label>
+                                    <input type="radio" name="weekly_action" value="check" checked>
+                                    チェックを入れる
+                                </label>
+
+                                <label>
+                                    <input type="radio" name="weekly_action" value="uncheck">
+                                    チェックを外す
+                                </label>
+
+                                <label>
+                                    <input type="radio" name="weekly_action" value="time">
+                                    時間帯のみ変更
+                                </label>
+                            </div>
+
+                            <div class="bulk-section">
+                                <h3>希望時間</h3>
+
+                                <div class="bulk-time-row">
+                                    <input type="time" id="weekly-start">
+                                    <span>〜</span>
+                                    <input type="time" id="weekly-end">
+                                </div>
+                            </div>
+
+                            <div class="weekly-footer">
+                                <span id="weekly-count">0 / 7 曜日を設定済み</span>
+
+                                <button
+                                    type="button"
+                                    id="clear-weekday"
+                                    class="clear-weekday-button"
+                                >
+                                    この曜日の設定を解除
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+
+                    <button
+                        type="button"
+                        class="bulk-apply-button"
+                        id="apply-bulk"
+                    >
+                        適用する
+                    </button>
+                </div>
+            </details>
+
+            <!-- 既存の提出フォーム -->
+            <form method="post" id="shift-form">
+                {% csrf_token %}
+
+                <div class="submission-table-wrapper">
+                    <table class="submission-table">
+                        <thead>
+                            <tr>
+                                <th>日付</th>
+                                <th>曜日</th>
+                                <th>{{ submission_type }}</th>
+                                <th>出勤可能時間</th>
+                                <th>メモ</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in days %}
+                            <tr data-weekday="{{ item.weekday }}">
+                                <td>{{ item.day }}日</td>
+                                <td class="weekday-text">{{ item.weekday }}</td>
+
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        name="day_{{ item.day }}"
+                                        class="shift-checkbox"
+                                    >
+                                </td>
+
+                                <td>
+                                    <div class="shift-time-row">
+                                        <input
+                                            type="time"
+                                            name="start_{{ item.day }}"
+                                            class="shift-start"
+                                        >
+                                        <span>〜</span>
+                                        <input
+                                            type="time"
+                                            name="end_{{ item.day }}"
+                                            class="shift-end"
+                                        >
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <textarea
+                                        name="note_{{ item.day }}"
+                                        class="shift-note"
+                                        rows="2"
+                                    ></textarea>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="submit" class="submission-submit-button">
+                    提出
+                </button>
+            </form>
+
+        </div>
+    </section>
+</div>
+
+{{ previous_settings|default:"{}"|json_script:"previous-settings-data" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const weekdayNames = ["月", "火", "水", "木", "金", "土", "日"];
+
+    const weekdayMap = {
+        "月": 0,
+        "火": 1,
+        "水": 2,
+        "木": 3,
+        "金": 4,
+        "土": 5,
+        "日": 6
+    };
+
+    let selectedWeekday = 0;
+
+    // 曜日ごとの設定を独立して保存
+    const weeklySettings = {};
+
+    const weekdayButtons = document.querySelectorAll(".weekday-button");
+
+    const weeklyStart = document.getElementById("weekly-start");
+    const weeklyEnd = document.getElementById("weekly-end");
+
+    const weeklyCount = document.getElementById("weekly-count");
+    const selectedLabel = document.getElementById("selected-weekday-label");
+
+    const rows = document.querySelectorAll(".submission-table tbody tr");
+
+    function selectedRadio(name) {
+        return document.querySelector(
+            'input[name="' + name + '"]:checked'
+        ).value;
+    }
+
+    function setRadio(name, value) {
+        const radio = document.querySelector(
+            'input[name="' + name + '"][value="' + value + '"]'
+        );
+
+        if (radio) {
+            radio.checked = true;
+        }
+    }
+
+    function refreshWeekdayButtons() {
+        weekdayButtons.forEach(function (button) {
+            const day = Number(button.dataset.weekday);
+
+            button.classList.toggle(
+                "is-selected",
+                day === selectedWeekday
+            );
+
+            button.classList.toggle(
+                "is-configured",
+                Object.prototype.hasOwnProperty.call(weeklySettings, day)
+            );
+        });
+
+        weeklyCount.textContent =
+            Object.keys(weeklySettings).length + " / 7 曜日を設定済み";
+    }
+
+    function showWeekdaySettings() {
+        const settings = weeklySettings[selectedWeekday];
+
+        selectedLabel.textContent =
+            weekdayNames[selectedWeekday] + "曜日の詳細設定";
+
+        if (settings) {
+            setRadio("weekly_action", settings.action);
+            weeklyStart.value = settings.start;
+            weeklyEnd.value = settings.end;
+        } else {
+            setRadio("weekly_action", "check");
+            weeklyStart.value = "";
+            weeklyEnd.value = "";
+        }
+
+        refreshWeekdayButtons();
+    }
+
+    function saveWeekdaySettings() {
+        weeklySettings[selectedWeekday] = {
+            action: selectedRadio("weekly_action"),
+            start: weeklyStart.value,
+            end: weeklyEnd.value
+        };
+
+        refreshWeekdayButtons();
+    }
+
+    weekdayButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            selectedWeekday = Number(button.dataset.weekday);
+            showWeekdaySettings();
+        });
+    });
+
+    document.querySelectorAll(
+        'input[name="weekly_action"]'
+    ).forEach(function (radio) {
+        radio.addEventListener("change", saveWeekdaySettings);
+    });
+
+    weeklyStart.addEventListener("change", saveWeekdaySettings);
+    weeklyEnd.addEventListener("change", saveWeekdaySettings);
+
+    document.getElementById("clear-weekday")
+        .addEventListener("click", function () {
+            delete weeklySettings[selectedWeekday];
+            showWeekdaySettings();
+        });
+
+    function applySettingsToRow(row, settings) {
+        const checkbox = row.querySelector(".shift-checkbox");
+        const startInput = row.querySelector(".shift-start");
+        const endInput = row.querySelector(".shift-end");
+
+        if (settings.action === "check") {
+            checkbox.checked = true;
+        } else if (settings.action === "uncheck") {
+            checkbox.checked = false;
+        }
+
+        if (settings.start !== "") {
+            startInput.value = settings.start;
+        }
+
+        if (settings.end !== "") {
+            endInput.value = settings.end;
+        }
+    }
+
+    // 一括適用：通常設定の後、曜日別設定で上書き
+    document.getElementById("apply-bulk")
+        .addEventListener("click", function () {
+
+            const target = selectedRadio("bulk_target");
+
+            const generalSettings = {
+                action: selectedRadio("bulk_action"),
+                start: document.getElementById("bulk-start").value,
+                end: document.getElementById("bulk-end").value
+            };
+
+            rows.forEach(function (row) {
+                const weekday = weekdayMap[row.dataset.weekday];
+
+                const isWeekday = weekday <= 4;
+                const isWeekend = weekday >= 5;
+
+                const matches =
+                    target === "all" ||
+                    (target === "weekday" && isWeekday) ||
+                    (target === "weekend" && isWeekend);
+
+                if (matches) {
+                    applySettingsToRow(row, generalSettings);
+                }
+
+                if (weeklySettings[weekday]) {
+                    applySettingsToRow(row, weeklySettings[weekday]);
+                }
+            });
+
+            document.getElementById("bulk-details").open = false;
+        });
+
+    // 前月の提出済みデータを読み込む
+    document.getElementById("load-previous")
+        .addEventListener("click", function () {
+
+            const previousData = JSON.parse(
+                document.getElementById("previous-settings-data").textContent
+            );
+
+            const message = document.getElementById("previous-message");
+            message.hidden = false;
+
+            if (!previousData.days || previousData.days.length === 0) {
+                message.textContent = "前月の提出データがありません。";
+                return;
+            }
+
+            // 同じ曜日に複数の設定がある場合は最後の日付を採用
+            previousData.days.forEach(function (item) {
+                const day = Number(item.weekday);
+
+                // 提出方法によってチェックの意味が異なる
+                const submissionType = Number(
+                    "{{ submission_type_code|default:1 }}"
+                );
+
+                const shouldCheck = submissionType === 2
+                    ? !item.is_available
+                    : item.is_available;
+
+                weeklySettings[day] = {
+                    action: shouldCheck ? "check" : "uncheck",
+                    start: item.start || "",
+                    end: item.end || ""
+                };
+            });
+
+            document.getElementById("weekly-details").open = true;
+
+            selectedWeekday = 0;
+            showWeekdaySettings();
+
+            message.textContent =
+                "前月の設定を読み込みました。確認してから適用してください。";
+        });
+
+    showWeekdaySettings();
+});
+</script>
 {% endblock %}
