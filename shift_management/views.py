@@ -16,6 +16,7 @@ from .decorators import manager_required
 from .decorators import manager_required, staff_required
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.db import transaction
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -104,24 +105,27 @@ def shift_submission(request):
 
         if staff.submission_type == 2:
             availability_list= [not x for x in availability_list]
+
+        with transaction.atomic():
             ShiftSubmission.objects.filter(staff=staff,year=year,month=month).update(is_latest=False)
             submission_record = ShiftSubmission.objects.create(
             staff = staff,
             year = year,
-            month = month,
+            month = month,     
             submission_type = staff.submission_type,
             status = 2,
             submitted_at = timezone.now()
-        )
-
-        for day, is_available in enumerate(availability_list, start=1):
-            ShiftPreference.objects.create(
-                target_date=date(year, month, day),
-                is_available=is_available,
-                available_start_time=request.POST.get(f"start_{day}") or None,
-                available_end_time=request.POST.get(f"end_{day}") or None,
-                note=request.POST.get(f"note_{day}")
             )
+
+            for day, is_available in enumerate(availability_list, start=1):
+                ShiftPreference.objects.create(
+                    target_date=date(year, month, day),
+                    is_available=is_available,
+                    submission=submission_record,
+                    available_start_time=request.POST.get(f"start_{day}") or None,
+                    available_end_time=request.POST.get(f"end_{day}") or None,
+                    note=request.POST.get(f"note_{day}")
+                )
         
 
     return render(
