@@ -397,3 +397,7 @@ def edit_staff(request, staff_id):
 def logout_view(request):
     logout(request)
     return redirect("shift_management:staff_login")
+
+def generate_shift(request):
+    for submission in submissions:
+        preferences = ShiftPreference.objects.filter(submission=submission)
