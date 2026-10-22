@@ -419,7 +419,7 @@ def generate_shift(request):
     for submission in submissions:
         preferences = ShiftPreference.objects.filter(submission=submission)
         for preference in preferences:
-            if preference == True:
+            if preference.is_available:
                 candidates.append(preference)
             
                 
