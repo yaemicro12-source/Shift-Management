@@ -20,5 +20,6 @@ urlpatterns = [
         views.edit_staff,
         name='edit_staff'
     ),
+    path('message/',views.message,name='message'),
     path('logout/',views.logout_view,name='logout'),
 ]

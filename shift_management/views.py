@@ -571,3 +571,11 @@ def generate_shift(request):
             status=2,
             work_date__range=(week_start, week_end)
         ).values("work_date").distinct().count()
+
+
+
+def message(request):
+        return render(
+        request,
+        'shift_management/message.html',
+    )
