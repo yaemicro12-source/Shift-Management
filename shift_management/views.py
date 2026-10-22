@@ -3,7 +3,7 @@ from django.shortcuts import render
 from datetime import datetime,date
 import calendar
 from .models import ShiftAssignment
-from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference
+from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference,RequiredStaffingRule,StaffStoreAssignment
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLoginForm,ManagerLoginForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -17,6 +17,7 @@ from .decorators import manager_required, staff_required
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -407,7 +408,8 @@ def logout_view(request):
 #シフト自動生成
 def generate_shift(request):
     today = date.today()
-    candidates =[]#その日に対して勤務可能なスタッフとデータのみ残す
+    candidates = []  # 勤務可能なスタッフの希望データ
+
 
     if today.month == 12:
         year = today.year + 1
@@ -415,12 +417,69 @@ def generate_shift(request):
     else:
         year = today.year
         month = today.month + 1
-    submissions = ShiftSubmission.objects.filter(is_latest=True,month=month,year=year)
+
+    submissions = ShiftSubmission.objects.filter(
+        is_latest=True,
+        month=month,
+        year=year
+    )
+
     for submission in submissions:
         preferences = ShiftPreference.objects.filter(submission=submission)
+
         for preference in preferences:
             if preference.is_available:
                 candidates.append(preference)
+
+    # 来月の最終日を取得
+    last_day = calendar.monthrange(year, month)[1]
+
+    # 来月1日から月末まで繰り返す
+    for day in range(1, last_day + 1):
+        target_date = date(year, month, day)
+
+        # その曜日の必要人数ルールを取得
+        rules = RequiredStaffingRule.objects.filter(
+            weekday=target_date.weekday()
+        )
+
+        assigned_staff = set()
+
+        for rule in rules:
+            canworkers =[] #条件に一致したスタッフ
+            start_datetime = datetime.combine(target_date, rule.shift_time_slot.start_time)
+            end_datetime = datetime.combine(target_date, rule.shift_time_slot.end_time)
+
+            work_minutes = int((end_datetime - start_datetime).total_seconds() / 60)
+            for candidate in candidates:
+
+                # 希望日とシフトを組む日付が一致するか
+                if candidate.target_date == target_date:
+
+                    # 希望開始時間がシフト開始時間以前か
+                    if (
+                        candidate.available_start_time is not None
+                        and candidate.available_end_time is not None
+                        and candidate.available_start_time <= rule.shift_time_slot.start_time
+                    ):
+
+                        # 希望終了時間がシフト終了時間以降か
+                        if candidate.available_end_time >= rule.shift_time_slot.end_time:
+                            if StaffStoreAssignment.objects.filter(
+                                staff=candidate.submission.staff,
+                                store=rule.store
+                            ).filter(
+                                Q(starts_on__lte=target_date) | Q(starts_on__isnull=True),
+                                Q(ends_on__gte=target_date) | Q(ends_on__isnull=True)
+                            ).exists():
+                                if candidate.submission.staff not in assigned_staff:
+                                    canworkers.append(candidate.submission.staff)
             
+            
+            selected_workers = canworkers[:rule.required_count]
+            for worker in selected_workers:
+                    assigned_staff.add(worker)
+            if len(canworkers) < rule.required_count:
+                shortage = rule.required_count - len(selected_workers)
+
                 
-   
