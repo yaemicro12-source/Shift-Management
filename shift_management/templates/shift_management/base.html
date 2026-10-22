@@ -1,3 +1,196 @@
-<p>setting</p>
-<p>message</p>
-<p>logaut</p>
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}シフト管理システム{% endblock %}</title>
+
+    {% block extra_head %}{% endblock %}
+
+    <style>
+        .common-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            position: relative;
+            z-index: 100;
+        }
+
+        .common-header-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .menu-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .menu-button span {
+            display: block;
+            width: 23px;
+            height: 2px;
+            background-color: #333;
+            border-radius: 2px;
+        }
+
+        .menu-button:hover {
+            background-color: #f3f3f3;
+        }
+
+        .common-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 16px;
+            width: 220px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+
+        .common-menu.is-open {
+            display: block;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+            width: 100%;
+            padding: 15px 18px;
+            font-size: 14px;
+            color: #333;
+            background: white;
+            border: none;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .menu-item + .menu-item,
+        .common-menu form {
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .menu-item:disabled {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .menu-item small {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .logout-button {
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background-color: #f8f8f8;
+        }
+
+        .common-menu form {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="common-header">
+        <h1 class="common-header-title">シフト管理システム</h1>
+
+        <button
+            type="button"
+            class="menu-button"
+            id="menu-button"
+            aria-label="メニューを開く"
+            aria-expanded="false"
+            aria-controls="common-menu"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="common-menu" id="common-menu" aria-label="共通メニュー">
+            <button type="button" class="menu-item" disabled>
+                設定
+                <small>準備中</small>
+            </button>
+
+            <button type="button" class="menu-item" disabled>
+                メッセージ
+                <small>準備中</small>
+            </button>
+
+            <form action="{% url 'shift_management:logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="menu-item logout-button">
+                    ログアウト
+                </button>
+            </form>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script>
+        const menuButton = document.getElementById("menu-button");
+        const commonMenu = document.getElementById("common-menu");
+
+        function closeMenu() {
+            commonMenu.classList.remove("is-open");
+            menuButton.setAttribute("aria-expanded", "false");
+            menuButton.setAttribute("aria-label", "メニューを開く");
+        }
+
+        menuButton.addEventListener("click", function (event) {
+            event.stopPropagation();
+
+            const isOpen = commonMenu.classList.toggle("is-open");
+
+            menuButton.setAttribute("aria-expanded", String(isOpen));
+            menuButton.setAttribute(
+                "aria-label",
+                isOpen ? "メニューを閉じる" : "メニューを開く"
+            );
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!commonMenu.contains(event.target)) {
+                closeMenu();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                closeMenu();
+            }
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

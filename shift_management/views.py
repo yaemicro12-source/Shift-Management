@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from datetime import datetime,date
+from datetime import datetime, date, timedelta
 import calendar
 from .models import ShiftAssignment
 from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference,RequiredStaffingRule,StaffStoreAssignment
@@ -410,7 +410,6 @@ def generate_shift(request):
     today = date.today()
     candidates = []  # 勤務可能なスタッフの希望データ
 
-
     if today.month == 12:
         year = today.year + 1
         month = 1
@@ -431,12 +430,21 @@ def generate_shift(request):
             if preference.is_available:
                 candidates.append(preference)
 
+    # スタッフごとの勤務時間を管理
+    weekly_minutes = {}
+    monthly_minutes = {}
+
     # 来月の最終日を取得
     last_day = calendar.monthrange(year, month)[1]
 
     # 来月1日から月末まで繰り返す
     for day in range(1, last_day + 1):
         target_date = date(year, month, day)
+
+        # 月曜日を週の開始日とする
+        week_start = target_date - timedelta(
+            days=target_date.weekday()
+        )
 
         # その曜日の必要人数ルールを取得
         rules = RequiredStaffingRule.objects.filter(
@@ -446,11 +454,23 @@ def generate_shift(request):
         assigned_staff = set()
 
         for rule in rules:
-            canworkers =[] #条件に一致したスタッフ
-            start_datetime = datetime.combine(target_date, rule.shift_time_slot.start_time)
-            end_datetime = datetime.combine(target_date, rule.shift_time_slot.end_time)
+            canworkers = []  # 条件に一致したスタッフ
 
-            work_minutes = int((end_datetime - start_datetime).total_seconds() / 60)
+            # シフト枠の勤務時間を分単位で計算
+            start_datetime = datetime.combine(
+                target_date,
+                rule.shift_time_slot.start_time
+            )
+            end_datetime = datetime.combine(
+                target_date,
+                rule.shift_time_slot.end_time
+            )
+
+            work_minutes = int(
+                (end_datetime - start_datetime).total_seconds() / 60
+            )
+
+            # その日に勤務できるスタッフを確認
             for candidate in candidates:
 
                 # 希望日とシフトを組む日付が一致するか
@@ -460,26 +480,94 @@ def generate_shift(request):
                     if (
                         candidate.available_start_time is not None
                         and candidate.available_end_time is not None
-                        and candidate.available_start_time <= rule.shift_time_slot.start_time
+                        and candidate.available_start_time
+                        <= rule.shift_time_slot.start_time
                     ):
 
                         # 希望終了時間がシフト終了時間以降か
-                        if candidate.available_end_time >= rule.shift_time_slot.end_time:
+                        if (
+                            candidate.available_end_time
+                            >= rule.shift_time_slot.end_time
+                        ):
+
+                            # 対象店舗に所属しているか
                             if StaffStoreAssignment.objects.filter(
                                 staff=candidate.submission.staff,
                                 store=rule.store
                             ).filter(
-                                Q(starts_on__lte=target_date) | Q(starts_on__isnull=True),
-                                Q(ends_on__gte=target_date) | Q(ends_on__isnull=True)
+                                Q(starts_on__lte=target_date)
+                                | Q(starts_on__isnull=True),
+                                Q(ends_on__gte=target_date)
+                                | Q(ends_on__isnull=True)
                             ).exists():
-                                if candidate.submission.staff not in assigned_staff:
-                                    canworkers.append(candidate.submission.staff)
-            
-            
-            selected_workers = canworkers[:rule.required_count]
-            for worker in selected_workers:
-                    assigned_staff.add(worker)
-            if len(canworkers) < rule.required_count:
-                shortage = rule.required_count - len(selected_workers)
 
-                
+                                staff = candidate.submission.staff
+
+                                # 同じ日の重複配置を防ぐ
+                                if staff not in assigned_staff:
+
+                                    # スタッフの勤務時間上限
+                                    weekly_limit = staff.weekly_max_minutes
+                                    monthly_limit = staff.monthly_max_minutes
+
+                                    # 現在の勤務時間に今回のシフトを加算
+                                    week_key = (staff.id, week_start)
+                                    month_key = staff.id
+
+                                    weekly_total = (
+                                        weekly_minutes.get(week_key, 0)
+                                        + work_minutes
+                                    )
+                                    monthly_total = (
+                                        monthly_minutes.get(month_key, 0)
+                                        + work_minutes
+                                    )
+
+                                    # 週の勤務時間上限を確認
+                                    if (
+                                        weekly_limit is not None
+                                        and weekly_total > weekly_limit
+                                    ):
+                                        continue
+
+                                    # 月の勤務時間上限を確認
+                                    if (
+                                        monthly_limit is not None
+                                        and monthly_total > monthly_limit
+                                    ):
+                                        continue
+
+                                    canworkers.append(staff)
+
+            # 必要人数を上限としてスタッフを選択
+            selected_workers = canworkers[:rule.required_count]
+
+            for worker in selected_workers:
+                assigned_staff.add(worker)
+
+                # 選ばれたスタッフの勤務時間を加算
+                week_key = (worker.id, week_start)
+                month_key = worker.id
+
+                weekly_minutes[week_key] = (
+                    weekly_minutes.get(week_key, 0)
+                    + work_minutes
+                )
+
+                monthly_minutes[month_key] = (
+                    monthly_minutes.get(month_key, 0)
+                    + work_minutes
+                )
+
+            # 人数不足を計算
+            if len(selected_workers) < rule.required_count:
+                shortage = (
+                    rule.required_count - len(selected_workers)
+                )
+
+        ShiftAssignment.objects.filter(staff=candidate.submission.staff,status=2)
+        worked_days = ShiftAssignment.objects.filter(
+            staff=staff,
+            status=2,
+            work_date__range=(week_start, week_end)
+        ).values("work_date").distinct().count()
