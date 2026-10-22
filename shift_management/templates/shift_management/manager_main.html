@@ -1,64 +1,135 @@
+
 {% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}シフト管理システム{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block header_title %}
+{{ staff_name }}
+{% endblock %}
+
 {% block content %}
-    <h1>{{ month }}月{{ day }}日</h1>
-    <h2>{{ staff_name }}さん</h2>
-    <span>今日のシフト：</span>
-    {% for shift in shifts %}
-        
-        {% if shift.work_date.day == day %}
-            <span>【</span>{{ shift.store }}<span>】</span>
-            
-            {{ shift.start_time }}
-            <span>～</span>
-            {{ shift.end_time }}
-            {% endif %}
-    {% endfor %}
+<div class="staff-page">
 
-    <table>
-    <thead>
-        <tr>
-            <th>月</th>
-            <th>火</th>
-            <th>水</th>
-            <th>木</th>
-            <th>金</th>
-            <th>土</th>
-            <th>日</th>
-        </tr>
-    </thead>
+    <!-- 今日の日付・シフト -->
+    <section class="staff-card">
 
-    <tbody>
-        {% for week in weeks %}
-            <tr>
-                {% for day in week %}
-                    {% if day == 0 %}
-                        <td></td>
-                    {% else %}
-                        <td>
-                        <div>{{ day }}</div>
-                        {% for shift in shifts %}
-                            {% if shift.work_date.day == day %}
+        <div class="staff-card-header">
+            <h1>{{ month }}月{{ day }}日</h1>
+        </div>
+
+        <div class="today-shift-content">
+            <div class="today-shift-item">
+                <span class="today-shift-label">
+                    今日のシフト：
+                </span>
+
+                {% for shift in shifts %}
+                    {% if shift.work_date.day == day %}
+                        <span class="today-shift-store">
                             {{ shift.store }}
-                            <br>
-                            {{ shift.start_time }}
-                            <span>～</span>
-                            {{ shift.end_time }}
-                            {% endif %}
-                        {% endfor %}
-                        </td>
+                        </span>
+
+                        <span class="today-shift-time">
+                            {{ shift.start_time }} 〜 {{ shift.end_time }}
+                        </span>
                     {% endif %}
                 {% endfor %}
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </div>
+        </div>
 
+    </section>
 
-<p><a href="{% url 'shift_management:sift_submission' %}">シフト提出</a></p>
-<p><a href="{% url 'shift_management:edit_shift' %}">シフト編集</a></p>
-<p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
-<form action="{% url 'shift_management:logout' %}" method="post">
-    {% csrf_token %}
-    <button type="submit">ログアウト</button>
-</form>
+    <!-- 月間シフトカレンダー -->
+    <section class="staff-card">
+
+        <div class="calendar-wrapper">
+            <table class="shift-calendar">
+
+                <thead>
+                    <tr>
+                        <th>月</th>
+                        <th>火</th>
+                        <th>水</th>
+                        <th>木</th>
+                        <th>金</th>
+                        <th>土</th>
+                        <th>日</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for week in weeks %}
+                        <tr>
+                            {% for day in week %}
+
+                                {% if day == 0 %}
+                                    <td class="empty-day"></td>
+                                {% else %}
+                                    <td>
+                                        <div class="calendar-day-number">
+                                            {{ day }}
+                                        </div>
+
+                                        {% for shift in shifts %}
+                                            {% if shift.work_date.day == day %}
+                                                <div class="calendar-shift">
+
+                                                    <span class="calendar-shift-store">
+                                                        {{ shift.store }}
+                                                    </span>
+
+                                                    <span class="calendar-shift-time">
+                                                        {{ shift.start_time }}
+                                                        〜
+                                                        {{ shift.end_time }}
+                                                    </span>
+
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                {% endif %}
+
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </section>
+
+    <!-- 管理者メニュー -->
+    <div class="manager-actions">
+
+        <a
+            href="{% url 'shift_management:sift_submission' %}"
+            class="submission-button"
+        >
+            シフト提出
+        </a>
+
+        <a
+            href="{% url 'shift_management:edit_shift' %}"
+            class="submission-button"
+        >
+            シフト編集
+        </a>
+
+        <a
+            href="{% url 'shift_management:all_staff' %}"
+            class="submission-button"
+        >
+            従業員一覧
+        </a>
+
+    </div>
+
+</div>
 {% endblock %}

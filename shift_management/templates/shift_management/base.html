@@ -116,8 +116,11 @@
 
 <body>
     <header class="common-header">
-        <h1 class="common-header-title">シフト管理システム</h1>
-
+       <h1 class="common-header-title">
+            {% block header_title %}
+                シフト管理システム
+            {% endblock %}
+        </h1>
         <button
             type="button"
             class="menu-button"
@@ -131,23 +134,47 @@
             <span></span>
         </button>
 
+        
         <nav class="common-menu" id="common-menu" aria-label="共通メニュー">
+
+            <!-- ホーム -->
+            {% if user.is_authenticated %}
+
+                {% if user.staffprofile.role == 1 %}
+                    <a href="{% url 'shift_management:staff_main' %}"
+                    class="menu-item">
+                        ホーム
+                    </a>
+
+                {% elif user.staffprofile.role == 2 %}
+                    <a href="{% url 'shift_management:manager_main' %}"
+                    class="menu-item">
+                        ホーム
+                    </a>
+                {% endif %}
+
+            {% endif %}
+
+            <!-- 設定 -->
             <button type="button" class="menu-item" disabled>
                 設定
                 <small>準備中</small>
             </button>
 
+            <!-- メッセージ -->
             <button type="button" class="menu-item" disabled>
                 メッセージ
                 <small>準備中</small>
             </button>
 
+            <!-- ログアウト -->
             <form action="{% url 'shift_management:logout' %}" method="post">
                 {% csrf_token %}
                 <button type="submit" class="menu-item logout-button">
                     ログアウト
                 </button>
             </form>
+
         </nav>
     </header>
 
