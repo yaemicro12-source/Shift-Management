@@ -1,130 +1,416 @@
+
 {% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}従業員追加{% endblock %}
+{% block header_title %}シフト管理システム{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">{% endblock %}
+
 {% block content %}
-    <body>
-    <h1>従業員登録</h1>
-        <form method="post" autocomplete="off" >
-        {% csrf_token %}
-            
-            従業員番号<input type="text" name="username" id="username">
-            {{ form.username.errors }}
+<div class="add-staff-page">
 
-            <br>
-            <label for="password">初期パスワード</label>
-            
-            <input type="password" id="password" name="password" minlength="8" required>
-            {{ form.password.errors }}
-            <br>
-            氏名<input type="text" name="name" id="name" ><input type="text" name="firstname" id="fastname">
-            {{ form.name.errors }}            
-            <br>
-            <br>
-            入社日<input type="date" name="joined_on" id="joined_on">
-            {{ form.joined_on.errors }}  
-            <br>
-            <br>
-            終電時間<input type="time" name="last_train_departure_time" id="last_train_departure_time">
-            <br>
-            <p>
-                時給<input type="text" name="hourly_wage" id="hourly_wage">
-                <br>
+    <div class="add-staff-container">
+
+        <div class="add-staff-page-heading">
+            <h1>従業員追加</h1>
+            <p>詳細設定以外の項目はすべて入力必須です。</p>
+        </div>
+
+        <form method="post" autocomplete="off" class="add-staff-form">
+            {% csrf_token %}
+
+            <!-- 基本情報 -->
+            <section class="add-staff-panel">
+
+                <h2 class="add-staff-section-title">
+                    <span class="add-staff-section-icon">♙</span>
+                    基本情報
+                </h2>
+
+                <div class="add-staff-field">
+                    <label for="username">従業員ID</label>
+                    <input
+                        type="text"
+                        name="username"
+                        id="username"
+                        placeholder="例：1001"
+                        value="{{ form.username.value|default_if_none:'' }}"
+                        required
+                    >
+                    {{ form.username.errors }}
+                </div>
+
+                <div class="add-staff-field">
+                    <label for="password">初期パスワード</label>
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        minlength="8"
+                        placeholder="8文字以上"
+                        required
+                    >
+                    {{ form.password.errors }}
+                </div>
+
+                <div class="add-staff-names">
+                    <div class="add-staff-field">
+                        <label for="name">姓</label>
+                        <input
+                            type="text"
+                            name="name"
+                            id="name"
+                            placeholder="山田"
+                            value="{{ form.name.value|default_if_none:'' }}"
+                            required
+                        >
+                        {{ form.name.errors }}
+                    </div>
+
+                    <div class="add-staff-field">
+                        <label for="firstname">名</label>
+                        <input
+                            type="text"
+                            name="firstname"
+                            id="firstname"
+                            placeholder="花子"
+                            value="{{ form.firstname.value|default_if_none:'' }}"
+                            required
+                        >
+                        {{ form.firstname.errors }}
+                    </div>
+                </div>
+
+                <div class="add-staff-field">
+                    <label for="joined_on">入社日</label>
+                    <input
+                        type="date"
+                        name="joined_on"
+                        id="joined_on"
+                        value="{{ form.joined_on.value|default_if_none:'' }}"
+                        required
+                    >
+                    {{ form.joined_on.errors }}
+                </div>
+
+                <div class="add-staff-field">
+                    <label for="last_train_departure_time">終電時間</label>
+                    <input
+                        type="time"
+                        name="last_train_departure_time"
+                        id="last_train_departure_time"
+                        value="{{ form.last_train_departure_time.value|default_if_none:'' }}"
+                        required
+                    >
+                    {{ form.last_train_departure_time.errors }}
+                </div>
+
+                <div class="add-staff-field">
+                    <label for="hourly_wage">時給（円）</label>
+                    <input
+                        type="number"
+                        name="hourly_wage"
+                        id="hourly_wage"
+                        min="0"
+                        step="1"
+                        placeholder="例：1300"
+                        value="{{ form.hourly_wage.value|default_if_none:'' }}"
+                        required
+                    >
                     {{ form.hourly_wage.errors }}
-            </p>
-            <br>
-            <label>
-                <input type="checkbox" name="is_trainee" id="is_trainee" value="1">研修中
-            </label>
-            <p>権限区分
-                <label>
-                    <input type="radio" name="role" value="1">
-                        一般従業員
+                </div>
+
+                <label class="add-staff-training">
+                    <input
+                        type="checkbox"
+                        name="is_trainee"
+                        id="is_trainee"
+                        value="1"
+                        {% if form.is_trainee.value %}checked{% endif %}
+                    >
+                    <span>研修中</span>
+                </label>
+
+                <div class="add-staff-field">
+                    <label for="color">シフトカラー</label>
+                    <input
+                        type="color"
+                        name="color"
+                        id="color"
+                        class="add-staff-color-picker"
+                        value="{{ form.color.value|default:'#a9c9ed' }}"
+                        required
+                    >
+                    {{ form.color.errors }}
+                </div>
+
+                <div class="add-staff-field">
+                    <label for="note">メモ</label>
+                    <textarea
+                        name="note"
+                        id="note"
+                        rows="3"
+                        placeholder="従業員についてのメモを入力"
+                        required
+                    >{{ form.note.value|default_if_none:'' }}</textarea>
+                    {{ form.note.errors }}
+                </div>
+
+            </section>
+
+            <!-- シフト・権限設定 -->
+            <section class="add-staff-panel">
+
+                <h2 class="add-staff-section-title">
+                    <span class="add-staff-section-icon">▦</span>
+                    シフト・権限設定
+                </h2>
+
+                <fieldset class="add-staff-fieldset">
+                    <legend>権限区分</legend>
+
+                    <label class="add-staff-choice">
+                        <input
+                            type="radio"
+                            name="role"
+                            value="1"
+                            {% if form.role.value == '1' or not form.role.value %}checked{% endif %}
+                            required
+                        >
+                        <span>一般従業員</span>
                     </label>
 
-                    <label>
-                        <input type="radio" name="role" value="2">
-                        管理者
+                    <label class="add-staff-choice">
+                        <input
+                            type="radio"
+                            name="role"
+                            value="2"
+                            {% if form.role.value == '2' %}checked{% endif %}
+                        >
+                        <span>管理者</span>
                     </label>
+
                     {{ form.role.errors }}
-                    </p>
-            <br>
-            <p>
-                シフト提出方法
-                <br>
-                <label>
-                    <input type="radio" name="submission_type" value="1">
-                        出勤可能な日を選択（出勤日数の少ないスタッフ向け）
+                </fieldset>
+
+                <fieldset class="add-staff-fieldset">
+                    <legend>シフト提出方法</legend>
+
+                    <label class="add-staff-choice">
+                        <input
+                            type="radio"
+                            name="submission_type"
+                            value="1"
+                            {% if form.submission_type.value == '1' or not form.submission_type.value %}checked{% endif %}
+                            required
+                        >
+                        <span>
+                            出勤可能な日を選択
+                            <small>出勤日数の少ないスタッフ向け</small>
+                        </span>
                     </label>
-                    <br>
-                    <label>
-                        <input type="radio" name="submission_type" value="2">
-                        休みの希望を選択（出勤日数の多いスタッフ向け）
+
+                    <label class="add-staff-choice">
+                        <input
+                            type="radio"
+                            name="submission_type"
+                            value="2"
+                            {% if form.submission_type.value == '2' %}checked{% endif %}
+                        >
+                        <span>
+                            休みの希望を選択
+                            <small>出勤日数の多いスタッフ向け</small>
+                        </span>
                     </label>
+
                     {{ form.submission_type.errors }}
-            </p>
-            <p>
-            <br>
-            最低シフト提出日数<input type="text" name="minimum_available_days" id="minimum_available_days">
-            {{ form.minimum_available_days.errors }}
-            </p>
-            <br>
-            シフトカラー<input type="color" name="color" id="color">
-            <br>
-            <br>
-            メモ<textarea name="note" id="note"></textarea>
-            <br>
-            <br>
-            <details>
-                <summary>詳細登録</summary>
-                <br>
-                    <br>
-                    <p>提出日数不足の警告の有無</p>
-                    <label>
-                        <input type="radio" name="show_submission_warning" id="show_submission_warning_true" value="True">
-                        有り
-                    </label>
-                    <label>
-                        <input type="radio" name="show_submission_warning" id="show_submission_warning_false" value="False">
-                        無し
-                    </label>
-                    </p>
-                    <p>権限
-                        <br>
-                    <label>
-                        <input type="checkbox" name="is_position_holder" id="is_position_holder" value="1">役職者か
-                    </label>
-                    <br>
-                    <label>
-                        <input type="checkbox" name="can_view_all_shifts" id="can_view_all_shifts" value="2">全体シフトの閲覧権限
-                    </label>
-                    <br>
-                    <label>
-                        <input type="checkbox" name="can_view_shortage" id="can_view_shortage" value="3">不足枠の閲覧権限
-                    </label>
-                    <br>
-                    <label>
-                        <input type="checkbox" name="shift_priority" id="shift_priority" value="4">シフト優先
-                    </label>
-                    </p>
+                </fieldset>
 
-                    <p>
-                    <br>
-                    研修終了予定日<input type="date" name="training_end_date" id="training_end_date">
-                    <br>
-                    試用期間終了日<input type="date" name="probation_end_date" id="probation_end_date">
-                    <br>
-                    年間収入上限<input type="text" name="annual_income_limit" id="annual_income_limit">
-                    <br>
-                    本人が希望する月の勤務時間<input type="text" name="desired_monthly_minutes" id="desired_monthly_minutes">
-                    </p>   
+                <div class="add-staff-field">
+                    <label for="minimum_available_days">
+                        最低シフト提出日数
+                    </label>
+                    <input
+                        type="number"
+                        name="minimum_available_days"
+                        id="minimum_available_days"
+                        min="0"
+                        step="1"
+                        placeholder="例：8"
+                        value="{{ form.minimum_available_days.value|default_if_none:'' }}"
+                        required
+                    >
+                    {{ form.minimum_available_days.errors }}
+                </div>
+
+            </section>
+
+            <!-- 詳細設定 -->
+            <details class="add-staff-panel add-staff-details"
+                {% if form.errors %}open{% endif %}>
+
+                <summary class="add-staff-details-summary">
+                    <span>
+                        <span class="add-staff-section-icon">⚙</span>
+                        詳細設定
+                        <small>任意項目</small>
+                    </span>
+                    <span class="add-staff-chevron" aria-hidden="true"></span>
+                </summary>
+
+                <div class="add-staff-details-body">
+
+                    <fieldset class="add-staff-fieldset">
+                        <legend>提出日数不足の警告</legend>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="radio"
+                                name="show_submission_warning"
+                                value="True"
+                                {% if form.show_submission_warning.value != False and form.show_submission_warning.value != 'False' %}checked{% endif %}
+                            >
+                            <span>有り</span>
+                        </label>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="radio"
+                                name="show_submission_warning"
+                                value="False"
+                                {% if form.show_submission_warning.value == False or form.show_submission_warning.value == 'False' %}checked{% endif %}
+                            >
+                            <span>無し</span>
+                        </label>
+
+                        {{ form.show_submission_warning.errors }}
+                    </fieldset>
+
+                    <fieldset class="add-staff-fieldset">
+                        <legend>個別権限</legend>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="checkbox"
+                                name="is_position_holder"
+                                id="is_position_holder"
+                                value="1"
+                                {% if form.is_position_holder.value %}checked{% endif %}
+                            >
+                            <span>役職者</span>
+                        </label>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="checkbox"
+                                name="can_view_all_shifts"
+                                id="can_view_all_shifts"
+                                value="2"
+                                {% if form.can_view_all_shifts.value %}checked{% endif %}
+                            >
+                            <span>全体シフトの閲覧</span>
+                        </label>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="checkbox"
+                                name="can_view_shortage"
+                                id="can_view_shortage"
+                                value="3"
+                                {% if form.can_view_shortage.value %}checked{% endif %}
+                            >
+                            <span>不足枠の閲覧</span>
+                        </label>
+
+                        <label class="add-staff-choice">
+                            <input
+                                type="checkbox"
+                                name="shift_priority"
+                                id="shift_priority"
+                                value="4"
+                                {% if form.shift_priority.value %}checked{% endif %}
+                            >
+                            <span>シフト優先</span>
+                        </label>
+                    </fieldset>
+
+                    <div class="add-staff-field">
+                        <label for="training_end_date">
+                            研修終了予定日
+                        </label>
+                        <input
+                            type="date"
+                            name="training_end_date"
+                            id="training_end_date"
+                            value="{{ form.training_end_date.value|default_if_none:'' }}"
+                        >
+                        {{ form.training_end_date.errors }}
+                    </div>
+
+                    <div class="add-staff-field">
+                        <label for="probation_end_date">
+                            試用期間終了日
+                        </label>
+                        <input
+                            type="date"
+                            name="probation_end_date"
+                            id="probation_end_date"
+                            value="{{ form.probation_end_date.value|default_if_none:'' }}"
+                        >
+                        {{ form.probation_end_date.errors }}
+                    </div>
+
+                    <div class="add-staff-field">
+                        <label for="annual_income_limit">
+                            年間収入上限（円）
+                        </label>
+                        <input
+                            type="number"
+                            name="annual_income_limit"
+                            id="annual_income_limit"
+                            min="0"
+                            step="1"
+                            value="{{ form.annual_income_limit.value|default_if_none:'' }}"
+                        >
+                        {{ form.annual_income_limit.errors }}
+                    </div>
+
+                    <div class="add-staff-field">
+                        <label for="desired_monthly_minutes">
+                            希望月間勤務時間（分）
+                        </label>
+                        <input
+                            type="number"
+                            name="desired_monthly_minutes"
+                            id="desired_monthly_minutes"
+                            min="0"
+                            step="1"
+                            value="{{ form.desired_monthly_minutes.value|default_if_none:'' }}"
+                        >
+                        {{ form.desired_monthly_minutes.errors }}
+                    </div>
+
+                </div>
             </details>
-            <br>
-            <br>
-            <button type="submit">登録</button>
+
+            <!-- ボタン -->
+            <div class="add-staff-actions">
+                <a
+                    href="{% url 'shift_management:all_staff' %}"
+                    class="add-staff-cancel"
+                >
+                    キャンセル
+                </a>
+
+                <button type="submit" class="add-staff-submit">
+                    従業員を登録
+                    <span aria-hidden="true">→</span>
+                </button>
+            </div>
+
         </form>
-        <br>
-        <p><a href="{% url 'shift_management:all_staff' %}">従業員一覧</a></p>
-        <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
-
-    </body>
-
-
+    </div>
+</div>
 {% endblock %}

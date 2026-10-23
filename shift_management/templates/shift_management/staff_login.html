@@ -1,17 +1,111 @@
-<h1>従業員ログイン</h1>
 
-<form method="post" autocomplete="off">
-    {% csrf_token %}
-    <p>ID<input type = "text" name="username"></p>
-    <p>PASS<input type = "password" name="password"></p>
-    {% for message in messages  %}
-    {{ message }}
-    {% endfor %}
-    <br>
-    <br>
-    <button type="submit">送信</button>
-</form>
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>従業員ログイン</title>
+    <link rel="stylesheet" href="{% static 'shift_management/login.css' %}">
+</head>
+<body>
 
+<main class="login-page">
+    <section class="login-card">
 
+        <div class="login-heading">
+            <div class="login-icon">
+                <!-- カレンダーアイコン -->
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="16" rx="2"/>
+                    <path d="M7 3v4M17 3v4M3 10h18"/>
+                    <path d="m9 15 2 2 4-4"/>
+                </svg>
+            </div>
 
-<p><a href="{% url 'shift_management:manager_login' %}">管理者ログインページ</a></p>
+            <h1>シフト管理システム</h1>
+            <p>従業員ログイン</p>
+        </div>
+
+        <form method="post" autocomplete="off" class="login-form">
+            {% csrf_token %}
+
+            <div class="login-field">
+                <label for="username">従業員ID</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="従業員IDを入力"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="login-field">
+                <label for="password">パスワード</label>
+
+                <div class="password-row">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="パスワードを入力"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        aria-label="パスワードを表示"
+                        aria-pressed="false"
+                    >
+                        表示
+                    </button>
+                </div>
+            </div>
+
+            {% if messages %}
+            <div class="login-errors" role="alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <button type="submit" class="login-submit">
+                ログイン <span aria-hidden="true">→</span>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <a href="{% url 'shift_management:manager_login' %}">
+                管理者の方はこちら <span aria-hidden="true">›</span>
+            </a>
+        </div>
+
+    </section>
+</main>
+
+<script>
+    const toggle = document.querySelector(".password-toggle");
+    const password = document.querySelector("#password");
+
+    toggle.addEventListener("click", function () {
+        const isHidden = password.type === "password";
+
+        password.type = isHidden ? "text" : "password";
+        toggle.textContent = isHidden ? "非表示" : "表示";
+        toggle.setAttribute("aria-pressed", String(isHidden));
+        toggle.setAttribute(
+            "aria-label",
+            isHidden ? "パスワードを隠す" : "パスワードを表示"
+        );
+    });
+</script>
+
+</body>
+</html>

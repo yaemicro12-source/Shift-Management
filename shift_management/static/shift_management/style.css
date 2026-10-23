@@ -868,3 +868,434 @@
         padding: 8px 6px;
     }
 }
+
+/* =========================
+   従業員追加画面
+   ========================= */
+
+.add-staff-page {
+    min-height: calc(100vh - 70px);
+    padding: 28px 20px 48px;
+    background: #f4f7fb;
+    color: #263c58;
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+}
+
+.add-staff-page *,
+.add-staff-page *::before,
+.add-staff-page *::after {
+    box-sizing: border-box;
+}
+
+.add-staff-container {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+/* ページタイトル */
+
+.add-staff-page-heading {
+    margin-bottom: 22px;
+}
+
+.add-staff-page-heading h1 {
+    margin: 0 0 9px;
+    font-size: 23px;
+    font-weight: 700;
+    color: #263c58;
+}
+
+.add-staff-page-heading p {
+    margin: 0;
+    font-size: 13px;
+    color: #718198;
+}
+
+/* セクション */
+
+.add-staff-panel {
+    margin-bottom: 16px;
+    padding: 22px;
+    border: 1px solid #e1e8f1;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.add-staff-section-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 19px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #edf1f5;
+    font-size: 16px;
+    font-weight: 650;
+    color: #263c58;
+}
+
+.add-staff-section-icon {
+    color: #3976b7;
+    font-size: 19px;
+    font-weight: 400;
+}
+
+/* 入力欄 */
+
+.add-staff-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
+}
+
+.add-staff-field:last-child {
+    margin-bottom: 0;
+}
+
+.add-staff-field > label,
+.add-staff-fieldset legend {
+    font-size: 13px;
+    font-weight: 600;
+    color: #45566c;
+}
+
+.add-staff-field input:not([type="color"]),
+.add-staff-field textarea {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #263c58;
+    font: inherit;
+    font-size: 14px;
+}
+
+.add-staff-field textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.add-staff-field input::placeholder,
+.add-staff-field textarea::placeholder {
+    color: #a0a9b6;
+}
+
+.add-staff-field input:focus,
+.add-staff-field textarea:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+
+/* 姓・名だけ横並び */
+
+.add-staff-names {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.add-staff-names .add-staff-field {
+    margin-bottom: 0;
+}
+
+/* ラジオボタン・チェックボックス */
+
+.add-staff-fieldset {
+    min-width: 0;
+    margin: 0 0 18px;
+    padding: 0;
+    border: none;
+}
+
+.add-staff-fieldset legend {
+    margin-bottom: 9px;
+    padding: 0;
+}
+
+.add-staff-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #263c58;
+    cursor: pointer;
+}
+
+.add-staff-choice input {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: #3478c7;
+}
+
+.add-staff-choice small {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    color: #7b8797;
+}
+
+/* 研修中：強調ボックス */
+
+.add-staff-training {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid #d7e6f7;
+    border-radius: 9px;
+    background: #f0f6fd;
+    font-size: 14px;
+    font-weight: 600;
+    color: #263c58;
+    cursor: pointer;
+}
+
+.add-staff-training input {
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #3478c7;
+}
+
+/* シフトカラー：余白のない角丸ボックス */
+
+.add-staff-color-picker {
+    display: block;
+    width: 56px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #d5dce6;
+    border-radius: 7px;
+    overflow: hidden;
+    background: transparent;
+    cursor: pointer;
+}
+
+.add-staff-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.add-staff-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+.add-staff-color-picker::-moz-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+/* 詳細設定 */
+
+.add-staff-details {
+    overflow: hidden;
+}
+
+.add-staff-details-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    list-style: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 650;
+    color: #263c58;
+}
+
+.add-staff-details-summary::-webkit-details-marker {
+    display: none;
+}
+
+.add-staff-details-summary > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.add-staff-details-summary small {
+    margin-left: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #8391a3;
+}
+
+.add-staff-chevron {
+    width: 9px;
+    height: 9px;
+    margin-right: 4px;
+    border-right: 2px solid #718198;
+    border-bottom: 2px solid #718198;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.add-staff-details[open] .add-staff-chevron {
+    transform: rotate(225deg);
+}
+
+.add-staff-details-body {
+    margin-top: 18px;
+    padding-top: 20px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* Djangoのエラー表示 */
+
+.add-staff-page .errorlist {
+    margin: 2px 0 0;
+    padding-left: 18px;
+    color: #c54444;
+    font-size: 12px;
+}
+
+/* 登録・キャンセルボタン */
+
+.add-staff-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.add-staff-cancel,
+.add-staff-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 43px;
+    padding: 11px 19px;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.add-staff-cancel {
+    border: 1px solid #dce2ea;
+    background: #fff;
+    color: #45566c;
+}
+
+.add-staff-cancel:hover {
+    background: #f4f7fb;
+}
+
+.add-staff-submit {
+    border: 1px solid #3478c7;
+    background: #3478c7;
+    color: #fff;
+}
+
+.add-staff-submit:hover {
+    background: #2865aa;
+}
+
+.add-staff-submit span {
+    font-size: 18px;
+}
+
+/* スマートフォン対応 */
+
+@media (max-width: 480px) {
+    .add-staff-page {
+        padding: 20px 12px 36px;
+    }
+
+    .add-staff-panel {
+        padding: 18px 16px;
+    }
+
+    .add-staff-page-heading h1 {
+        font-size: 21px;
+    }
+
+    .add-staff-names {
+        gap: 10px;
+    }
+}
+
+/* =========================
+   従業員編集画面
+   ========================= */
+
+/* 従業員ID：変更不可 */
+
+.add-staff-field .edit-staff-readonly {
+    background-color: #f4f7fb;
+    color: #718198;
+    cursor: default;
+}
+
+/* ボタン配置 */
+
+.edit-staff-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.edit-staff-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* 退職ボタン */
+
+.edit-staff-retire {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 43px;
+    padding: 11px 19px;
+    border: 1px solid #e7b7b7;
+    border-radius: 7px;
+    background: #fff;
+    color: #bd4a4a;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.edit-staff-retire:hover {
+    background: #fff5f5;
+}
+
+/* スマートフォン対応 */
+
+@media (max-width: 480px) {
+    .edit-staff-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .edit-staff-actions-right {
+        justify-content: flex-end;
+    }
+
+    .edit-staff-retire {
+        align-self: flex-start;
+    }
+}

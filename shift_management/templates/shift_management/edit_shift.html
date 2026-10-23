@@ -1,27 +1,472 @@
+
 {% extends "shift_management/base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="ja">
+{% block title %}シフト編集{% endblock %}
+{% block header_title %}シフト管理システム{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>シフト編集</title>
+{% block extra_head %}
+<style>
+/* シフト編集画面専用 */
+.edit-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+    background: #f7f9fc;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+}
 
-    <link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
-</head>
+.edit-page * {
+    box-sizing: border-box;
+}
 
+.edit-page-title {
+    margin: 0 0 22px;
+    font-size: 24px;
+}
 
-<body>
+.edit-card {
+    min-width: 0;
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #e5e8ed;
+    border-radius: 10px;
+}
 
-    <!--カレンダー形式-->
-    {% block content %}
-        <h1>{{year}}年{{ month }}月</h1>
-        <select>{% for select in selects %}
-                    <option>{{select}}</option>
+.edit-card h2 {
+    margin: 0 0 16px;
+    font-size: 16px;
+}
+
+.edit-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 16px;
+}
+
+.edit-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.edit-field select,
+.edit-field input {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.edit-filters .edit-field {
+    margin-bottom: 0;
+}
+
+.edit-calendar-card {
+    margin-bottom: 20px;
+}
+
+.edit-calendar-heading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 14px;
+}
+
+.edit-calendar-heading h2 {
+    margin: 0;
+}
+
+.edit-month-button {
+    padding: 4px 12px;
+    color: #3478c7;
+    font-size: 20px;
+    text-decoration: none;
+}
+
+.edit-calendar {
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 4px;
+}
+
+.edit-calendar th {
+    padding: 5px;
+    font-size: 12px;
+    color: #777;
+}
+
+.edit-calendar td {
+    height: 38px;
+    padding: 0;
+    text-align: center;
+}
+
+.edit-calendar .empty-day {
+    background: #fafbfc;
+    border-radius: 5px;
+}
+
+.edit-calendar .day-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 38px;
+    color: #444;
+    background: #f7f9fc;
+    border: 1px solid #edf0f3;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.edit-calendar .day-link:hover {
+    background: #eaf2fc;
+}
+
+.edit-calendar .day-link.is-selected {
+    background: #e4f0ff;
+    border-color: #3478c7;
+    color: #245b9a;
+    font-weight: 700;
+}
+
+.edit-calendar .has-shift {
+    position: relative;
+}
+
+.edit-calendar .has-shift::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #3478c7;
+}
+
+.edit-date-heading {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+.edit-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.edit-layout.is-expanded {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.edit-layout.is-expanded .edit-form-card {
+    display: none;
+}
+
+.edit-chart-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.edit-chart-heading h2 {
+    margin: 0;
+}
+
+.edit-outline-button {
+    padding: 7px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    color: #444;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.edit-outline-button:hover {
+    background: #f7f9fc;
+}
+
+.edit-chart-sort {
+    margin-bottom: 12px;
+}
+
+.edit-chart-sort select {
+    width: 100%;
+    padding: 9px;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+}
+
+/* 時間軸は固定、スタッフ列だけ横スクロール */
+.edit-chart {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #e5e8ed;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.edit-time-axis {
+    flex: 0 0 46px;
+    width: 46px;
+    background: #f7f9fc;
+    border-right: 1px solid #e5e8ed;
+}
+
+.edit-axis-header,
+.edit-staff-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    border-bottom: 1px solid #e5e8ed;
+    font-size: 10px;
+}
+
+.edit-time-labels {
+    position: relative;
+    height: 312px;
+}
+
+.edit-time-label {
+    position: absolute;
+    left: 3px;
+    font-size: 9px;
+    color: #666;
+    transform: translateY(-5px);
+    white-space: nowrap;
+}
+
+.edit-staff-scroll {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.edit-staff-columns {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+}
+
+.edit-staff-column {
+    flex: 0 0 40px;
+    width: 40px;
+}
+
+.edit-staff-header {
+    background: #f7f9fc;
+    border-right: 1px solid #e5e8ed;
+    white-space: nowrap;
+}
+
+.edit-staff-timeline {
+    position: relative;
+    height: 312px;
+    border-right: 1px solid #edf0f3;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 23px,
+        #e5e8ed 23px,
+        #e5e8ed 24px
+    );
+}
+
+.edit-shift-bar {
+    position: absolute;
+    left: 2px;
+    width: 36px;
+    min-height: 0;
+    border-radius: 3px;
+    background: #b9d7f5;
+    color: #263f5c;
+    font-size: 9px;
+    overflow: hidden;
+}
+
+.edit-bar-start,
+.edit-bar-end {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 9px;
+    line-height: 12px;
+    white-space: nowrap;
+}
+
+.edit-bar-start {
+    top: 2px;
+}
+
+.edit-bar-end {
+    bottom: 2px;
+}
+
+.edit-chart-note {
+    margin: 10px 0 0;
+    font-size: 11px;
+    color: #777;
+}
+
+/* 編集フォーム */
+.edit-timeslots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.edit-timeslot {
+    padding: 8px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.edit-timeslot.is-active {
+    background: #3478c7;
+    border-color: #3478c7;
+    color: #fff;
+}
+
+.edit-date-display {
+    padding: 11px;
+    border-radius: 6px;
+    background: #f7f9fc;
+    font-size: 14px;
+}
+
+.edit-save-button,
+.edit-delete-button {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.edit-save-button {
+    border: none;
+    background: #3478c7;
+    color: #fff;
+}
+
+.edit-delete-button {
+    margin-top: 9px;
+    border: 1px solid #d95c63;
+    background: #fff;
+    color: #d95c63;
+}
+
+.edit-error {
+    color: #d95c63;
+    font-size: 12px;
+}
+
+@media (max-width: 700px) {
+    .edit-page {
+        padding: 16px 10px 40px;
+    }
+
+    .edit-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .edit-layout.is-expanded .edit-form-card {
+        display: none;
+    }
+
+    .edit-filters {
+        gap: 6px;
+    }
+
+    .edit-card {
+        padding: 12px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="edit-page">
+
+    <h1 class="edit-page-title">シフト編集</h1>
+
+    <!-- 絞り込み -->
+    <div class="edit-filters">
+        <div class="edit-field">
+            <label for="area-filter">エリア</label>
+            <select id="area-filter">
+                <option value="">すべて</option>
+            </select>
+        </div>
+
+        <div class="edit-field">
+            <label for="store-filter">店舗</label>
+            <select id="store-filter">
+                <option value="">すべて</option>
+                {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
                 {% endfor %}
-        </select>
-        <table>
+            </select>
+        </div>
+
+        <div class="edit-field">
+            <label for="staff-filter">スタッフ</label>
+            <select id="staff-filter">
+                <option value="">すべて</option>
+                {% for staff in staffs %}
+                    <option value="{{ staff.id }}">{{ staff.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- カレンダー -->
+    <section class="edit-card edit-calendar-card">
+        <div class="edit-calendar-heading">
+            <a class="edit-month-button"
+               href="?date={{ prev_month_date|date:'Y-m-d' }}"
+               aria-label="前月">‹</a>
+
+            <h2>{{ year }}年{{ month }}月</h2>
+
+            <a class="edit-month-button"
+               href="?date={{ next_month_date|date:'Y-m-d' }}"
+               aria-label="翌月">›</a>
+        </div>
+
+        <table class="edit-calendar">
             <thead>
                 <tr>
                     <th>月</th>
@@ -33,119 +478,305 @@
                     <th>日</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for week in weeks %}
-                    <tr>
-                        {% for day in week %}
-                            {% if day == 0 %}
-                                <td></td>
-                            {% else %}
-                                <td>
-                                <div><div>
-                                    <a href="{% url 'shift_management:edit_shift' %}?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}">
-                                         {{ day }}
-                                    </a>
-                                </div></div>
-                                {% for shift in shifts %}
-                                    {% if shift.work_date.day == day %}
-                                        <a href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}&shift_id={{ shift.id }}">
-                                            {{ shift.store }}
-                                            {{ shift.start_time }}
-                                            {{ shift.end_time }}
-                                        </a>
-                                    {% endif %}
-                                {% endfor %}
-                                </td>
-                            {% endif %}
-                        {% endfor %}
-                    </tr>
+                <tr>
+                    {% for day in week %}
+                    <td {% if day == 0 %}class="empty-day"{% endif %}>
+                        {% if day != 0 %}
+                        <a
+                            class="day-link {% if day == display_day %}is-selected{% endif %}"
+                            href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}"
+                        >
+                            {{ day }}
+                        </a>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <br>
+    </section>
 
-        <!--グラフ形式-->
-        <div class="shift-chart">
-            <div class="time-axis">
-                <div class="chart-header">時間</div>
-                {% for hour in hours %}
-                    <div class="time-label">{{ hour }}:00</div>
-                {% endfor %}
+    <h2 class="edit-date-heading">
+        {{ year }}年{{ month }}月{{ display_day }}日のシフト
+    </h2>
+
+    <div class="edit-layout" id="edit-layout">
+
+        <!-- 左：シフトグラフ -->
+        <section class="edit-card edit-chart-card">
+
+            <div class="edit-chart-heading">
+                <h2>シフト配置グラフ</h2>
+
+                <button
+                    type="button"
+                    class="edit-outline-button"
+                    id="expand-chart"
+                    aria-expanded="false"
+                >
+                    ⛶ 拡大
+                </button>
             </div>
 
-            <div class="staff-area">
-                {% for staff in staffs %}
-                    <div class="staff-column">
-                        <div class="chart-header">{{ staff.name }}</div>
-                        <div class="staff-timeline">
-                            {% for hour in hours %}
-                                <div class="hour-line"></div>
-                            {% endfor %}
-                            <div class="shift-bar"></div>
-                        </div>
+            <div class="edit-chart-sort">
+                <select id="chart-sort" aria-label="グラフの並び順">
+                    <option value="slot">シフト枠順（開始時間順）</option>
+                    <option value="registered">登録順</option>
+                </select>
+            </div>
+
+            <div class="edit-chart">
+                <!-- 左側の固定時間軸 -->
+                <div class="edit-time-axis">
+                    <div class="edit-axis-header">時間</div>
+
+                    <div class="edit-time-labels">
+                        {% for hour in chart_hours %}
+                        <span
+                            class="edit-time-label"
+                            style="top: {{ hour.top }}px;"
+                        >
+                            {{ hour.label }}
+                        </span>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                </div>
+
+                <!-- スタッフ欄のみスクロール -->
+                <div class="edit-staff-scroll">
+                    <div class="edit-staff-columns" id="staff-columns">
+
+                        {% for item in chart_staffs %}
+                        <div
+                            class="edit-staff-column"
+                            data-staff-id="{{ item.staff.id }}"
+                            data-start="{{ item.sort_start }}"
+                            data-order="{{ item.sort_order }}"
+                        >
+                            <div class="edit-staff-header">
+                                {{ item.staff.name }}
+                            </div>
+
+                            <div class="edit-staff-timeline">
+                                {% for bar in item.bars %}
+                                <a
+                                    class="edit-shift-bar"
+                                    href="?date={{ bar.date|date:'Y-m-d' }}&shift_id={{ bar.id }}"
+                                    style="
+                                        top: {{ bar.top }}px;
+                                        height: {{ bar.height }}px;
+                                        background-color: {{ item.color }};
+                                    "
+                                    title="{{ item.staff.name }} {{ bar.start }}〜{{ bar.end }}"
+                                >
+                                    <span class="edit-bar-start">
+                                        {{ bar.start }}
+                                    </span>
+                                    <span class="edit-bar-end">
+                                        {{ bar.end }}
+                                    </span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p style="padding: 16px; font-size: 13px;">
+                            表示するスタッフがいません。
+                        </p>
+                        {% endfor %}
+
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- シフト枠入力欄 -->
-        <p>{{year}}年{{month}}月{{day}}日のシフト</p>
-        <form method="post">
-        {{ form.work_date }}      
-        {% csrf_token %}
-        {{ form.staff }}
-        {{ form.staff.errors }}
-        <br>
-        {{ form.store }}
+            <p class="edit-chart-note">
+                
+            </p>
+        </section>
 
-        <br>
-        
-        {% for timeslot in timeslots %}
-            <button
-            type="button"
-            class="timeslot-button"
-            data-start="{{ timeslot.start_time|date:'H:i' }}"
-            data-end="{{ timeslot.end_time|date:'H:i' }}"
-            data-slot-id="{{ timeslot.id }}"
-            >
-                {{timeslot}}
-            </button>
-        {% endfor %}
-            
-        
-        <p>開始時間 {{ form.start_time }}</p>
-        {{ form.start_time.errors }}
-        <p>終了時間 {{ form.end_time }} </p>
-        <!--シフト枠のidを取得するための隠しinput欄-->
-       {{ form.shift_time_slot }}
-        <button type="submit" name="action" value="save">シフト登録・変更を反映</button>
-        <button
-            type="submit"
-            name="action"
-            value="delete"
-            onclick="return confirm('このシフトを削除しますか？')"
-        >
-            削除
-        </button>
-        </form>
-        <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
+        <!-- 右：編集フォーム -->
+        <section class="edit-card edit-form-card">
+            <h2>シフト登録・編集</h2>
 
-    {% endblock %}
+            <form method="post" id="shift-edit-form">
+                {% csrf_token %}
+
+                {{ form.work_date }}
+                {{ form.shift_time_slot }}
+
+                <div class="edit-field">
+                    <label>勤務日</label>
+                    <div class="edit-date-display">
+                        {{ year }}年{{ month }}月{{ display_day }}日
+                    </div>
+                </div>
+
+                <div class="edit-field">
+                    <label for="{{ form.staff.id_for_label }}">
+                        スタッフ
+                    </label>
+                    {{ form.staff }}
+                    <div class="edit-error">{{ form.staff.errors }}</div>
+                </div>
+
+                <div class="edit-field">
+                    <label for="{{ form.store.id_for_label }}">
+                        店舗
+                    </label>
+                    {{ form.store }}
+                    <div class="edit-error">{{ form.store.errors }}</div>
+                </div>
+
+                <div class="edit-field">
+                    <label>シフト枠</label>
+                    <div class="edit-timeslots">
+                        {% for timeslot in timeslots %}
+                        <button
+                            type="button"
+                            class="edit-timeslot timeslot-button"
+                            data-start="{{ timeslot.start_time|date:'H:i' }}"
+                            data-end="{{ timeslot.end_time|date:'H:i' }}"
+                            data-slot-id="{{ timeslot.id }}"
+                        >
+                            {{ timeslot.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="edit-field">
+                    <label for="start_time">開始時間</label>
+                    {{ form.start_time }}
+                    <div class="edit-error">{{ form.start_time.errors }}</div>
+                </div>
+
+                <div class="edit-field">
+                    <label for="end_time">終了時間</label>
+                    {{ form.end_time }}
+                    <div class="edit-error">{{ form.end_time.errors }}</div>
+                </div>
+
+                {{ form.non_field_errors }}
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="save"
+                    class="edit-save-button"
+                >
+                    登録・変更を反映
+                </button>
+
+                {% if selected_shift %}
+                <button
+                    type="submit"
+                    name="action"
+                    value="delete"
+                    class="edit-delete-button"
+                    formnovalidate
+                    onclick="return confirm('このシフトを削除しますか？')"
+                >
+                    削除
+                </button>
+                {% endif %}
+            </form>
+        </section>
+    </div>
+</main>
+
 <script>
-    const startInput = document.querySelector("#start_time");
-    const endInput = document.querySelector("#end_time");
-    const buttons = document.querySelectorAll(".timeslot-button");
-    const slotInput = document.querySelector("#shift_time_slot");
-    buttons.forEach(function(button) {
-        button.addEventListener("click",function(){
-            startInput.value = button.dataset.start ;
-            endInput.value = button.dataset.end;
-            slotInput.value = button.dataset.slotId;
+document.addEventListener("DOMContentLoaded", function () {
+    // 拡大・縮小
+    const layout = document.getElementById("edit-layout");
+    const expandButton = document.getElementById("expand-chart");
+
+    expandButton.addEventListener("click", function () {
+        const expanded = layout.classList.toggle("is-expanded");
+
+        expandButton.textContent = expanded ? "⛶ 縮小" : "⛶ 拡大";
+        expandButton.setAttribute("aria-expanded", String(expanded));
+    });
+
+    // グラフの並べ替え
+    const sortSelect = document.getElementById("chart-sort");
+    const staffContainer = document.getElementById("staff-columns");
+
+    sortSelect.addEventListener("change", function () {
+        const columns = Array.from(
+            staffContainer.querySelectorAll(".edit-staff-column")
+        );
+
+        columns.sort(function (a, b) {
+            const orderA = Number(a.dataset.order);
+            const orderB = Number(b.dataset.order);
+
+            if (sortSelect.value === "registered") {
+                return orderA - orderB;
+            }
+
+            const startA = Number(a.dataset.start);
+            const startB = Number(b.dataset.start);
+
+            return startA - startB || orderA - orderB;
+        });
+
+        columns.forEach(function (column) {
+            staffContainer.appendChild(column);
         });
     });
-    
-</script>
-</body>
 
-</html>
+    // スタッフ絞り込み
+    const staffFilter = document.getElementById("staff-filter");
+
+    staffFilter.addEventListener("change", function () {
+        const selected = staffFilter.value;
+
+        staffContainer
+            .querySelectorAll(".edit-staff-column")
+            .forEach(function (column) {
+                column.style.display =
+                    !selected || column.dataset.staffId === selected
+                        ? ""
+                        : "none";
+            });
+    });
+
+    // シフト枠の選択
+    const startInput = document.getElementById("start_time");
+    const endInput = document.getElementById("end_time");
+    const slotInput = document.getElementById("shift_time_slot");
+    const slotButtons = document.querySelectorAll(".timeslot-button");
+
+    function updateActiveSlot() {
+        slotButtons.forEach(function (button) {
+            button.classList.toggle(
+                "is-active",
+                button.dataset.slotId === slotInput.value
+            );
+        });
+    }
+
+    slotButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            startInput.value = button.dataset.start;
+            endInput.value = button.dataset.end;
+            slotInput.value = button.dataset.slotId;
+
+            updateActiveSlot();
+        });
+    });
+
+    [startInput, endInput].forEach(function (input) {
+        input.addEventListener("change", function () {
+            slotInput.value = "";
+            updateActiveSlot();
+        });
+    });
+
+    updateActiveSlot();
+});
+</script>
+{% endblock %}

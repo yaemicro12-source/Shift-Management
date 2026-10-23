@@ -250,6 +250,124 @@ def edit_shift(request):
     context["form"] = form
 
     
+    # グラフで表示する日付
+    selected_date = date(
+        display_year,
+        display_month,
+        display_day
+    )
+
+    # その日の全スタッフのシフト
+    day_shifts = ShiftAssignment.objects.filter(
+        work_date=selected_date
+    ).select_related("staff").order_by("id")
+
+    # 10:00～23:00（1時間 = 24px）
+    chart_hours = [
+        {
+            "label": f"{hour}:00",
+            "top": (hour - 10) * 24,
+        }
+        for hour in range(10, 24)
+    ]
+
+    chart_staffs = []
+
+    for staff in staffs:
+        staff_shifts = [
+            shift for shift in day_shifts
+            if shift.staff_id == staff.id
+        ]
+
+        bars = []
+
+        for shift in staff_shifts:
+            if not shift.start_time or not shift.end_time:
+                continue
+
+            start_minutes = (
+                shift.start_time.hour * 60
+                + shift.start_time.minute
+            )
+            end_minutes = (
+                shift.end_time.hour * 60
+                + shift.end_time.minute
+            )
+
+            # 10:00を基準に位置を計算
+            top = (start_minutes - 600) * 24 / 60
+            height = (end_minutes - start_minutes) * 24 / 60
+
+            # 表示範囲（10:00～23:00）に収める
+            visible_top = max(0, top)
+            visible_bottom = min(312, top + height)
+
+            if visible_bottom <= visible_top:
+                continue
+
+            bars.append({
+                "id": shift.id,
+                "date": shift.work_date,
+                "start": shift.start_time.strftime("%H:%M"),
+                "end": shift.end_time.strftime("%H:%M"),
+                "top": round(visible_top, 2),
+                "height": round(
+                    visible_bottom - visible_top, 2
+                ),
+            })
+
+        # スタッフ単位の開始時間・登録順
+        first_start = min(
+            (
+                shift.start_time.hour * 60
+                + shift.start_time.minute
+                for shift in staff_shifts
+                if shift.start_time
+            ),
+            default=9999,
+        )
+
+        first_order = min(
+            (shift.id for shift in staff_shifts),
+            default=999999,
+        )
+
+        chart_staffs.append({
+            "staff": staff,
+            "color": staff.color or "#b9d7f5",
+            "bars": bars,
+            "sort_start": first_start,
+            "sort_order": first_order,
+        })
+
+    # 初期表示は開始時間順
+    chart_staffs.sort(
+        key=lambda item: (
+            item["sort_start"],
+            item["sort_order"],
+        )
+    )
+
+    # 前月・翌月の移動先
+    if display_month == 1:
+        prev_month_date = date(display_year - 1, 12, 1)
+    else:
+        prev_month_date = date(display_year, display_month - 1, 1)
+
+    if display_month == 12:
+        next_month_date = date(display_year + 1, 1, 1)
+    else:
+        next_month_date = date(display_year, display_month + 1, 1)
+
+    context.update({
+        "chart_hours": chart_hours,
+        "chart_staffs": chart_staffs,
+        "display_day": display_day,
+        "selected_shift": selected_shift,
+        "prev_month_date": prev_month_date,
+        "next_month_date": next_month_date,
+    })
+
     return render(
         request,'shift_management/edit_shift.html',context
     )

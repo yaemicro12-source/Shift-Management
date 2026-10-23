@@ -1,17 +1,127 @@
-<h1>管理者ログインページ</h1>
 
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ログイン</title>
+    <link rel="stylesheet" href="{% static 'shift_management/login.css' %}">
+</head>
+<body>
 
-<form method="post" autocomplete="off">
-    {% csrf_token %}
-    <p>ID<input type = "text" name="username"></p>
-    <p>PASS<input type = "password" name="password"></p>
-    <p>エリアコード<input type="text" name="area_code"></p> 
-    {% for message in messages  %}
-    {{ message }}
-    {% endfor %}
-    {{ form.area_code.errors }}
-    <br>
-    <br>
-    <button type="submit">送信</button>
+<main class="login-page">
+    <section class="login-card">
 
-<p><a href="{% url 'shift_management:staff_login' %}">従業員ログインページ</a></p>
+        <div class="login-heading">
+            <div class="login-icon">
+                <svg viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="16" rx="2"/>
+                    <path d="M7 3v4M17 3v4M3 10h18"/>
+                    <path d="m9 15 2 2 4-4"/>
+                </svg>
+            </div>
+
+            <h1>シフト管理システム</h1>
+            <p>管理者ログイン</p>
+        </div>
+
+        <form method="post" autocomplete="off" class="login-form">
+            {% csrf_token %}
+
+            <div class="login-field">
+                <label for="username">従業員ID</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="従業員IDを入力"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="login-field">
+                <label for="password">パスワード</label>
+
+                <div class="password-row">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="パスワードを入力"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        aria-label="パスワードを表示"
+                        aria-pressed="false"
+                    >
+                        表示
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-field">
+                <label for="area_code">エリアコード</label>
+                <input
+                    type="text"
+                    id="area_code"
+                    name="area_code"
+                    placeholder="エリアコードを入力"
+                    value="{{ request.POST.area_code|default:'' }}"
+                    required
+                >
+                {% if form.area_code.errors %}
+                    <div class="field-errors">
+                        {{ form.area_code.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if messages %}
+            <div class="login-errors" role="alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <button type="submit" class="login-submit">
+                ログイン <span aria-hidden="true">→</span>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <a href="{% url 'shift_management:staff_login' %}">
+                従業員の方はこちら <span aria-hidden="true">›</span>
+            </a>
+        </div>
+
+    </section>
+</main>
+
+<script>
+    const toggle = document.querySelector(".password-toggle");
+    const password = document.querySelector("#password");
+
+    toggle.addEventListener("click", function () {
+        const isHidden = password.type === "password";
+
+        password.type = isHidden ? "text" : "password";
+        toggle.textContent = isHidden ? "非表示" : "表示";
+        toggle.setAttribute("aria-pressed", String(isHidden));
+        toggle.setAttribute(
+            "aria-label",
+            isHidden ? "パスワードを隠す" : "パスワードを表示"
+        );
+    });
+</script>
+
+</body>
+</html>

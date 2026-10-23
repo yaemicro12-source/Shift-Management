@@ -1,0 +1,252 @@
+
+/* =========================
+   ログイン画面 共通CSS
+   ========================= */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+    color: #333;
+}
+
+/* 画面全体 */
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 32px 16px;
+    background: #f3f6fb;
+}
+
+/* ログインカード */
+.login-card {
+    width: 100%;
+    max-width: 390px;
+    padding: 32px;
+    background: #fff;
+    border: 1px solid #e1e7f0;
+    border-radius: 16px;
+    box-shadow: 0 5px 22px rgba(40, 70, 110, 0.04);
+}
+
+/* =========================
+   タイトル・アイコン
+   ========================= */
+
+.login-heading {
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #edf0f4;
+    text-align: center;
+}
+
+.login-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 14px;
+    border-radius: 13px;
+    background: #e9f2fc;
+    color: #3478c7;
+}
+
+.login-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.login-heading h1 {
+    margin: 0;
+    color: #263c58;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.login-heading p {
+    margin: 8px 0 0;
+    color: #758397;
+    font-size: 13px;
+}
+
+/* =========================
+   入力フォーム
+   ========================= */
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.login-field label {
+    color: #45566c;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.login-field input {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #333;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.login-field input::placeholder {
+    color: #a0a9b6;
+}
+
+.login-field input:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+
+/* パスワード表示切替 */
+.password-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.password-row input {
+    flex: 1;
+}
+
+.password-toggle {
+    flex-shrink: 0;
+    height: 44px;
+    padding: 0 11px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #66758a;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    background: #f3f6fb;
+}
+
+/* =========================
+   エラー表示
+   ========================= */
+
+.login-errors,
+.field-errors {
+    padding: 10px 12px;
+    background: #fff3f3;
+    border: 1px solid #f3cccc;
+    border-radius: 6px;
+    color: #c54444;
+    font-size: 12px;
+}
+
+.login-errors p {
+    margin: 0;
+}
+
+.login-errors p + p {
+    margin-top: 6px;
+}
+
+.field-errors ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+/* =========================
+   ログインボタン
+   ========================= */
+
+.login-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 6px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 7px;
+    background: #3478c7;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.login-submit:hover {
+    background: #2865aa;
+}
+
+.login-submit span {
+    font-size: 18px;
+}
+
+/* =========================
+   ログイン切替リンク
+   ========================= */
+
+.login-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #edf0f4;
+    text-align: center;
+}
+
+.login-footer a {
+    color: #3478c7;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+.login-footer span {
+    margin-left: 4px;
+}
+
+/* =========================
+   スマートフォン対応
+   ========================= */
+
+@media (max-width: 480px) {
+    .login-page {
+        padding: 20px 12px;
+    }
+
+    .login-card {
+        padding: 26px 20px;
+    }
+
+    .login-heading h1 {
+        font-size: 19px;
+    }
+}
