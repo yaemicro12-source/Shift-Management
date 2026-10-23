@@ -15,7 +15,7 @@
 
         <div class="add-staff-page-heading">
             <h1>従業員追加</h1>
-            <p>詳細設定以外の項目はすべて入力必須です。</p>
+            <p>詳細設定とメモ以外の項目はすべて入力必須です。</p>
         </div>
 
         <form method="post" autocomplete="off" class="add-staff-form">
@@ -153,7 +153,6 @@
                         id="note"
                         rows="3"
                         placeholder="従業員についてのメモを入力"
-                        required
                     >{{ form.note.value|default_if_none:'' }}</textarea>
                     {{ form.note.errors }}
                 </div>

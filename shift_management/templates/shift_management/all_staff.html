@@ -1,33 +1,195 @@
+
 {% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1>従業員一覧</h1>
-<p><a href="{% url 'shift_management:add_staff' %}">従業員追加</a></p>
+<div class="staff-list-page">
+  <h1 class="staff-list-title">従業員一覧</h1>
 
+  <section class="staff-list-panel">
+    <div class="staff-list-header">
+      <div>
+        <p class="staff-area-label">{{ area.name|default:"担当エリア" }}</p>
+        <h2 class="staff-store-title">
+          {{ selected_store.name|default:"エリア全体" }}
+        </h2>
+      </div>
 
-    <table>
-        <tr>
-            <th>役職</th>
+      <div class="staff-list-tools">
+        <form method="get" id="staff-store-form">
+          <select name="store" class="staff-store-select"
+                  aria-label="表示する店舗"
+                  onchange="this.form.submit()">
+            <option value="">エリア全体</option>
+            {% for store in stores %}
+              <option value="{{ store.id }}"
+                {% if selected_store.id == store.id %}selected{% endif %}>
+                {{ store.name }}
+              </option>
+            {% endfor %}
+          </select>
+
+          {% if search_query %}
+            <input type="hidden" name="q" value="{{ search_query }}">
+          {% endif %}
+        </form>
+
+        <button type="button" class="staff-search-toggle"
+                id="staff-search-toggle"
+                aria-label="検索欄を開く"
+                aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="1.9"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <form method="get"
+          class="staff-search-row{% if search_query %} is-open{% endif %}"
+          id="staff-search-form">
+
+      {% if selected_store %}
+        <input type="hidden" name="store" value="{{ selected_store.id }}">
+      {% endif %}
+
+      <div class="staff-search-field">
+        <svg width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" name="q" value="{{ search_query|default:'' }}"
+               placeholder="苗字で検索" aria-label="苗字で検索">
+      </div>
+
+      <button type="submit" class="staff-search-submit">検索</button>
+      <button type="button" class="staff-search-close"
+              id="staff-search-close" aria-label="検索を解除">
+        ×
+      </button>
+    </form>
+
+    <div class="staff-table-scroll">
+      <table class="staff-table">
+        <thead>
+          <tr>
+            <th class="staff-role-column">役職</th>
             <th>名前</th>
-            <th>ID</th>
+            <th>従業員ID</th>
             <th>終電時間</th>
             <th>メモ</th>
-        </tr>
-            {% for staff in staffs %}
-        <tr>
-            <td>{% if  staff.role == 2 %}
-                    <p>〇</p>
-                {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for staff in staffs %}
+          <tr>
+            <td class="staff-role-column staff-role-mark">
+              {% if staff.role == 2 %}〇{% endif %}
             </td>
-            <td>   
-                <a href="{% url 'shift_management:edit_staff' staff.id %}">
+            <td>
+              <a class="staff-name-link"
+                 href="{% url 'shift_management:edit_staff' staff.id %}">
                 {{ staff.name }}
-            </a></td>
-            <td>{{ staff.user.username }}</td>
-            <td>{{ staff.last_train_departure_time }}</td>
-            <td>{{ staff.note }}</td>
-        </tr>
-            {% endfor %}
+              </a>
+            </td>
+            <td class="staff-id-cell">{{ staff.user.username }}</td>
+            <td>{{ staff.last_train_departure_time|default:"" }}</td>
+            <td class="staff-memo-cell">{{ staff.note|default:"" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="staff-empty">
+              該当する従業員が見つかりませんでした。
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-    </table>
-            <p><a href="{% url 'shift_management:manager_main' %}">メインページ</a></p>
+  <div class="staff-list-footer">
+    <p class="staff-list-count">
+      {% if page_obj and page_obj.paginator.count %}
+        全{{ page_obj.paginator.count }}名中
+        {{ page_obj.start_index }}〜{{ page_obj.end_index }}名を表示
+      {% elif not page_obj %}
+        全{{ staffs|length }}名
+      {% else %}
+        該当者0名
+      {% endif %}
+    </p>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="staff-pagination" aria-label="ページ切り替え">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if selected_store %}&amp;store={{ selected_store.id }}{% endif %}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}"
+           class="staff-page-button" aria-label="前のページ">‹</a>
+      {% else %}
+        <span class="staff-page-button is-disabled">‹</span>
+      {% endif %}
+
+      {% for number in page_obj.paginator.page_range %}
+        {% if number == page_obj.number %}
+          <span class="staff-page-button is-active"
+                aria-current="page">{{ number }}</span>
+        {% else %}
+          <a class="staff-page-button"
+             href="?page={{ number }}{% if selected_store %}&amp;store={{ selected_store.id }}{% endif %}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}">
+            {{ number }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if selected_store %}&amp;store={{ selected_store.id }}{% endif %}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}"
+           class="staff-page-button" aria-label="次のページ">›</a>
+      {% else %}
+        <span class="staff-page-button is-disabled">›</span>
+      {% endif %}
+    </nav>
+    {% endif %}
+  </div>
+
+  <div class="staff-add-row">
+    <a href="{% url 'shift_management:add_staff' %}"
+       class="staff-add-button">＋ 従業員追加</a>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const toggle = document.getElementById("staff-search-toggle");
+  const form = document.getElementById("staff-search-form");
+  const close = document.getElementById("staff-search-close");
+
+  function setSearchOpen(open) {
+    form.classList.toggle("is-open", open);
+    toggle.classList.toggle("is-selected", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  }
+
+  setSearchOpen(form.classList.contains("is-open"));
+
+  toggle.addEventListener("click", function () {
+    setSearchOpen(!form.classList.contains("is-open"));
+  });
+
+  close.addEventListener("click", function () {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("q");
+    url.searchParams.delete("page");
+    window.location.href = url.toString();
+  });
+});
+</script>
 {% endblock %}

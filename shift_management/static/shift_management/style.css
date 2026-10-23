@@ -1299,3 +1299,326 @@
         align-self: flex-start;
     }
 }
+
+/* 従業員一覧 */
+.staff-list-page {
+  background: #f4f7fb;
+  color: #263c58;
+  padding: 24px 16px 30px;
+}
+
+.staff-list-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 22px;
+  color: #263c58;
+}
+
+.staff-list-panel {
+  background: #fff;
+  border: 1px solid #e1e8f1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.staff-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 19px 20px;
+}
+
+.staff-area-label {
+  font-size: 12px;
+  color: #718198;
+  margin: 0 0 5px;
+}
+
+.staff-store-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #263c58;
+}
+
+.staff-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.staff-store-select {
+  height: 39px;
+  min-width: 139px;
+  border: 1px solid #dce5ef;
+  background: #fff;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #263c58;
+  cursor: pointer;
+}
+
+.staff-search-toggle {
+  width: 39px;
+  height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #dce5ef;
+  border-radius: 6px;
+  color: #718198;
+  cursor: pointer;
+}
+
+.staff-search-toggle.is-selected {
+  background: #edf5ff;
+  color: #3478c7;
+  border-color: #c8dff7;
+}
+
+/* 検索欄：180px・高さ34px */
+.staff-search-row {
+  display: none;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+  padding: 0 20px 16px;
+  flex-wrap: wrap;
+}
+
+.staff-search-row.is-open {
+  display: flex;
+}
+
+.staff-search-field {
+  width: 180px;
+  position: relative;
+}
+
+.staff-search-field svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a5b8;
+  pointer-events: none;
+}
+
+.staff-search-field input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  border: 1px solid #dce5ef;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 9px 0 32px;
+  color: #263c58;
+  font-size: 13px;
+  outline: none;
+}
+
+.staff-search-field input::placeholder {
+  color: #94a5b8;
+  opacity: 1;
+}
+
+.staff-search-field input:focus {
+  border-color: #3478c7;
+}
+
+.staff-search-submit {
+  height: 34px;
+  background: #3478c7;
+  border: 1px solid #3478c7;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.staff-search-close {
+  width: 28px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #8292a5;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* 従業員テーブル */
+.staff-table-scroll {
+  overflow-x: auto;
+}
+
+.staff-table {
+  width: 100%;
+  min-width: 580px;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.staff-table th {
+  background: #f9fbfe;
+  color: #65768d;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+  padding: 14px 12px;
+  border-top: 1px solid #e1e8f1;
+  border-bottom: 1px solid #e1e8f1;
+  white-space: nowrap;
+}
+
+.staff-table td {
+  background: #fff;
+  font-size: 13px;
+  padding: 15px 12px;
+  border-bottom: 1px solid #edf1f5;
+  vertical-align: middle;
+}
+
+.staff-table tbody tr:nth-child(even) td {
+  background: #fafcff;
+}
+
+.staff-table tbody tr:hover td {
+  background: #f4f8ff;
+}
+
+.staff-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.staff-table .staff-role-column {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.staff-role-mark {
+  color: #3976b7;
+  font-size: 17px !important;
+  font-weight: 700;
+}
+
+.staff-name-link {
+  color: #3478c7;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.staff-name-link:hover {
+  text-decoration: underline;
+}
+
+.staff-id-cell {
+  color: #718198;
+}
+
+.staff-memo-cell {
+  max-width: 205px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #66788c;
+}
+
+.staff-empty {
+  text-align: center;
+  padding: 30px !important;
+  color: #718198;
+}
+
+/* 件数・ページ切り替え */
+.staff-list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+}
+
+.staff-list-count {
+  font-size: 12px;
+  color: #8391a3;
+  margin: 0;
+}
+
+.staff-pagination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.staff-page-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 33px;
+  height: 33px;
+  padding: 0 9px;
+  border: 1px solid #dce5ef;
+  background: #fff;
+  color: #57728e;
+  border-radius: 6px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.staff-page-button.is-active {
+  background: #3478c7;
+  border-color: #3478c7;
+  color: #fff;
+  font-weight: 700;
+}
+
+.staff-page-button.is-disabled {
+  color: #c1cbd7;
+  background: #f8fafd;
+}
+
+/* 従業員追加ボタン */
+.staff-add-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 19px;
+}
+
+.staff-add-button {
+  display: inline-block;
+  background: #3478c7;
+  border: 1px solid #3478c7;
+  color: #fff;
+  border-radius: 7px;
+  padding: 11px 17px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.staff-add-button:hover,
+.staff-search-submit:hover {
+  background: #2868b0;
+}
+
+/* 従業員一覧：見出しとデータの位置を揃える */
+.staff-table th {
+  text-align: left;
+}
+
+.staff-table th.staff-role-column,
+.staff-table td.staff-role-column {
+  text-align: center;
+}
