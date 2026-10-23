@@ -551,6 +551,14 @@ def generate_shift(request):
     # スタッフごとの勤務時間を管理
     weekly_minutes = {}
     monthly_minutes = {}
+    start_date = end_date - timedelta(days=5)
+    end_date = date(year, month, 1) - timedelta(days=1)
+    working_days = {}
+    previous_shifts = ShiftAssignment.objects.filter(status=2,work_date__range=(start_date,end_date))
+    for shift in previous_shifts:
+        working_days.setdefault(shift.staff_id, set()).add(shift.work_date)
+
+
 
     # 来月の最終日を取得
     last_day = calendar.monthrange(year, month)[1]
@@ -562,6 +570,9 @@ def generate_shift(request):
         # 月曜日を週の開始日とする
         week_start = target_date - timedelta(
             days=target_date.weekday()
+        )
+        week_end = week_start + timedelta(
+            days= 6
         )
 
         # その曜日の必要人数ルールを取得
@@ -654,14 +665,28 @@ def generate_shift(request):
                                         and monthly_total > monthly_limit
                                     ):
                                         continue
+                                    
+                                    if len( [n for n in working_days.get(staff.id, set())  if n>= week_start and n<= week_end])>=5:
+                                        continue
+                                    check_date = target_date-timedelta(
+                                        days=1
+                                    )
+                                    consecutive_days = 0
+                                    while check_date in working_days.get(staff.id, set()):
+                                        consecutive_days = consecutive_days+1
+                                        check_date = check_date-timedelta(
+                                            days=1
+                                        )
+
 
                                     canworkers.append(staff)
-
+                                    
             # 必要人数を上限としてスタッフを選択
             selected_workers = canworkers[:rule.required_count]
 
             for worker in selected_workers:
                 assigned_staff.add(worker)
+                working_days.setdefault(shift.workr.id, set()).add(target_date)
 
                 # 選ばれたスタッフの勤務時間を加算
                 week_key = (worker.id, week_start)
@@ -682,13 +707,6 @@ def generate_shift(request):
                 shortage = (
                     rule.required_count - len(selected_workers)
                 )
-
-        ShiftAssignment.objects.filter(staff=candidate.submission.staff,status=2)
-        worked_days = ShiftAssignment.objects.filter(
-            staff=staff,
-            status=2,
-            work_date__range=(week_start, week_end)
-        ).values("work_date").distinct().count()
 
 
 
