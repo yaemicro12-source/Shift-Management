@@ -1,4 +1,1549 @@
+/* =========================
+   シフト編集画面：配置グラフ
+   ========================= */
 
+.shift-chart {
+    display: flex;
+}
+
+.time-axis {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.chart-header {
+    height: 40px;
+    border: 1px solid #999;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.time-label {
+    height: 60px;
+    border-bottom: 1px solid #999;
+    box-sizing: border-box;
+}
+
+.staff-area {
+    display: flex;
+}
+
+.staff-column {
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.staff-timeline {
+    height: 780px;
+    border-left: 1px solid #999;
+    border-right: 1px solid #999;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.hour-line {
+    height: 60px;
+    border-bottom: 1px solid #999;
+    box-sizing: border-box;
+}
+
+.shift-bar {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    top: 45px;
+    height: 180px;
+    background-color: #aaa;
+}
+
+.errorlist {
+    color: red;
+}
+
+/* =========================
+   スタッフメイン画面
+   ========================= */
+
+.staff-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+}
+
+.staff-page .staff-card {
+    background: #fff;
+    border: 1px solid #e5e8ed;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.staff-page .staff-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.staff-page .staff-card-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.staff-page .today-shift-content {
+    padding: 24px;
+}
+
+.staff-page .today-shift-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    background: #f7f9fc;
+    border-left: 3px solid #3478c7;
+    border-radius: 5px;
+}
+
+.staff-page .today-shift-item:last-child {
+    margin-bottom: 0;
+}
+
+.staff-page .today-shift-label {
+    color: #777;
+    font-size: 13px;
+}
+
+.staff-page .today-shift-store {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.staff-page .today-shift-time {
+    color: #555;
+    font-size: 14px;
+}
+
+.staff-page .calendar-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.staff-page .shift-calendar {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.staff-page .shift-calendar th {
+    padding: 15px 8px;
+    background: #fafbfc;
+    color: #666;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e8ed;
+    text-align: center;
+}
+
+.staff-page .shift-calendar td {
+    height: 110px;
+    padding: 10px;
+    vertical-align: top;
+    border-right: 1px solid #edf0f3;
+    border-bottom: 1px solid #edf0f3;
+    background: #fff;
+}
+
+.staff-page .shift-calendar td:last-child {
+    border-right: none;
+}
+
+.staff-page .shift-calendar tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.staff-page .shift-calendar td.empty-day {
+    background: #fafbfc;
+}
+
+.staff-page .calendar-day-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.staff-page .calendar-shift {
+    padding: 7px 8px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    background: #eaf2fc;
+    color: #35689f;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.staff-page .calendar-shift-store {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.staff-page .calendar-shift-time {
+    display: block;
+}
+
+.staff-page .submission-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    padding: 14px 20px;
+    border-radius: 7px;
+    background: #3478c7;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.staff-page .submission-button:hover {
+    background: #2865aa;
+}
+
+@media (max-width: 700px) {
+    .staff-page {
+        padding: 20px 12px 40px;
+    }
+
+    .staff-page .staff-card-header,
+    .staff-page .today-shift-content {
+        padding: 16px;
+    }
+
+    .staff-page .today-shift-item {
+        gap: 8px;
+    }
+
+    .staff-page .shift-calendar td {
+        height: 90px;
+    }
+}
+
+/* =========================
+   管理者メイン画面
+   ========================= */
+
+.manager-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+/* =========================
+   シフト提出画面
+   ========================= */
+
+.submission-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+}
+
+.submission-page * {
+    box-sizing: border-box;
+}
+
+.submission-page-title {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* =========================
+   カード
+   ========================= */
+
+.submission-card {
+    background: #fff;
+    border: 1px solid #e5e8ed;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.submission-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.submission-card-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.submission-card-body {
+    padding: 24px;
+}
+
+/* =========================
+   一括適用
+   ========================= */
+
+.bulk-details {
+    margin-bottom: 24px;
+    border: 1px solid #d9e4f2;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.bulk-details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 18px;
+    background: #f7f9fc;
+    color: #3478c7;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.bulk-details > summary::-webkit-details-marker,
+.weekly-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.bulk-details > summary::after,
+.weekly-details > summary::after {
+    content: "⌄";
+    font-size: 20px;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+
+.bulk-details[open] > summary::after,
+.weekly-details[open] > summary::after {
+    transform: rotate(180deg);
+}
+
+.bulk-details > summary:hover,
+.weekly-details > summary:hover {
+    background: #edf4fc;
+}
+
+.bulk-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    border-top: 1px solid #e5e8ed;
+}
+
+/* =========================
+   前月の設定を読み込む
+   ========================= */
+
+.previous-month-button {
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: #fff;
+    color: #3478c7;
+    border: 1px solid #cbd8e8;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.previous-month-button:hover {
+    background: #f3f8ff;
+}
+
+.bulk-message {
+    margin: -8px 0 0;
+    color: #3478c7;
+    font-size: 13px;
+}
+
+.bulk-message[hidden] {
+    display: none;
+}
+
+/* =========================
+   対象日・操作内容・時間帯
+   ========================= */
+
+.bulk-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.bulk-section + .bulk-section {
+    padding-top: 20px;
+    border-top: 1px solid #edf0f3;
+}
+
+.bulk-section h3,
+.weekly-content h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.bulk-section label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+}
+
+.bulk-section input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #3478c7;
+    cursor: pointer;
+}
+
+.bulk-time-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.bulk-time-row input[type="time"] {
+    width: 180px;
+    max-width: calc(50% - 18px);
+    min-width: 0;
+    height: 42px;
+    padding: 8px 10px;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+}
+
+.bulk-time-row span {
+    color: #888;
+}
+
+.bulk-time-row input[type="time"]:focus,
+.shift-time-row input:focus,
+.shift-note:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 2px rgba(52, 120, 199, 0.12);
+}
+
+/* =========================
+   曜日ごとの設定
+   ========================= */
+
+.weekly-details {
+    border: 1px solid #e5e8ed;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.weekly-details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 18px;
+    background: #f7f9fc;
+    color: #3478c7;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.weekly-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    border-top: 1px solid #edf0f3;
+}
+
+/* =========================
+   曜日選択ボタン
+   ========================= */
+
+.weekday-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.weekday-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    color: #555;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+/* 設定済みの曜日 */
+.weekday-button.is-configured {
+    background: #eaf2fc;
+    border-color: #a9c9ef;
+    color: #3478c7;
+}
+
+/* 現在選択している曜日 */
+.weekday-button.is-selected,
+.weekday-button.is-selected.is-configured {
+    background: #3478c7;
+    border-color: #3478c7;
+    color: #fff;
+}
+
+.weekday-button:hover:not(.is-selected) {
+    border-color: #3478c7;
+}
+
+#selected-weekday-label {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+}
+
+/* =========================
+   曜日設定の解除
+   ========================= */
+
+.weekly-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #edf0f3;
+}
+
+#weekly-count {
+    color: #777;
+    font-size: 13px;
+}
+
+.clear-weekday-button {
+    padding: 9px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 6px;
+    background: #fff;
+    color: #555;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.clear-weekday-button:hover {
+    background: #f7f9fc;
+}
+
+/* =========================
+   一括適用ボタン
+   ========================= */
+
+.bulk-apply-button {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 18px;
+    border: none;
+    border-radius: 7px;
+    background: #3478c7;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bulk-apply-button:hover {
+    background: #2865aa;
+}
+/* =========================
+   日付別のシフト入力表
+   ========================= */
+
+.submission-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e5e8ed;
+    border-radius: 7px;
+}
+
+.submission-table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.submission-table th {
+    padding: 15px 10px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e8ed;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.submission-table th:nth-child(1) {
+    width: 75px;
+}
+
+.submission-table th:nth-child(2) {
+    width: 65px;
+}
+
+.submission-table th:nth-child(3) {
+    width: 115px;
+}
+
+.submission-table th:nth-child(4) {
+    width: 260px;
+}
+
+.submission-table th:nth-child(5) {
+    width: auto;
+}
+
+.submission-table td {
+    padding: 10px;
+    border-bottom: 1px solid #edf0f3;
+    color: #444;
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.submission-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.submission-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.shift-checkbox {
+    width: 17px;
+    height: 17px;
+    accent-color: #3478c7;
+    cursor: pointer;
+}
+
+.shift-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.shift-time-row input[type="time"] {
+    width: 105px;
+    min-width: 0;
+    height: 38px;
+    padding: 6px;
+    border: 1px solid #dce2ea;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-size: 12px;
+}
+
+.shift-time-row span {
+    color: #888;
+}
+
+.shift-note {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    padding: 8px;
+    border: 1px solid #dce2ea;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+}
+
+.weekday-text {
+    font-weight: 500;
+}
+
+/* 土曜日・日曜日 */
+.submission-table tr[data-weekday="土"] .weekday-text {
+    color: #3478c7;
+}
+
+.submission-table tr[data-weekday="日"] .weekday-text {
+    color: #d95c63;
+}
+
+/* =========================
+   提出ボタン
+   ========================= */
+
+.submission-submit-button {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    margin-top: 24px;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 7px;
+    background: #3478c7;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.submission-submit-button:hover {
+    background: #2865aa;
+}
+
+/* =========================
+   スマートフォン対応
+   ========================= */
+
+@media (max-width: 700px) {
+    .submission-page {
+        padding: 20px 12px 40px;
+    }
+
+    .submission-page-title {
+        font-size: 21px;
+        margin-bottom: 18px;
+    }
+
+    .submission-card-header,
+    .submission-card-body {
+        padding: 16px;
+    }
+
+    .bulk-content,
+    .weekly-content {
+        padding: 16px;
+    }
+
+    .bulk-time-row {
+        gap: 8px;
+    }
+
+    .bulk-time-row input[type="time"] {
+        flex: 1;
+        width: 0;
+        max-width: none;
+        font-size: 13px;
+    }
+
+    .weekday-button {
+        width: 38px;
+        height: 38px;
+    }
+
+    .submission-table th,
+    .submission-table td {
+        padding: 8px 6px;
+    }
+}
+/* =========================
+   従業員追加画面
+   ========================= */
+
+.add-staff-page {
+    min-height: calc(100vh - 70px);
+    padding: 28px 20px 48px;
+    background: #f4f7fb;
+    color: #263c58;
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+}
+
+.add-staff-page *,
+.add-staff-page *::before,
+.add-staff-page *::after {
+    box-sizing: border-box;
+}
+
+.add-staff-container {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+/* ページタイトル */
+
+.add-staff-page-heading {
+    margin-bottom: 22px;
+}
+
+.add-staff-page-heading h1 {
+    margin: 0 0 9px;
+    font-size: 23px;
+    font-weight: 700;
+    color: #263c58;
+}
+
+.add-staff-page-heading p {
+    margin: 0;
+    font-size: 13px;
+    color: #718198;
+}
+
+/* セクション */
+
+.add-staff-panel {
+    margin-bottom: 16px;
+    padding: 22px;
+    border: 1px solid #e1e8f1;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.add-staff-section-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 19px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid #edf1f5;
+    font-size: 16px;
+    font-weight: 650;
+    color: #263c58;
+}
+
+.add-staff-section-icon {
+    color: #3976b7;
+    font-size: 19px;
+    font-weight: 400;
+}
+
+/* 入力欄 */
+
+.add-staff-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
+}
+
+.add-staff-field:last-child {
+    margin-bottom: 0;
+}
+
+.add-staff-field > label,
+.add-staff-fieldset legend {
+    font-size: 13px;
+    font-weight: 600;
+    color: #45566c;
+}
+
+.add-staff-field input:not([type="color"]),
+.add-staff-field textarea {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #263c58;
+    font: inherit;
+    font-size: 14px;
+}
+
+.add-staff-field textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.add-staff-field input::placeholder,
+.add-staff-field textarea::placeholder {
+    color: #a0a9b6;
+}
+
+.add-staff-field input:focus,
+.add-staff-field textarea:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+
+/* 姓・名だけ横並び */
+
+.add-staff-names {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.add-staff-names .add-staff-field {
+    margin-bottom: 0;
+}
+
+/* ラジオボタン・チェックボックス */
+
+.add-staff-fieldset {
+    min-width: 0;
+    margin: 0 0 18px;
+    padding: 0;
+    border: none;
+}
+
+.add-staff-fieldset legend {
+    margin-bottom: 9px;
+    padding: 0;
+}
+
+.add-staff-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #263c58;
+    cursor: pointer;
+}
+
+.add-staff-choice input {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: #3478c7;
+}
+
+.add-staff-choice small {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    color: #7b8797;
+}
+
+/* 研修中：強調ボックス */
+
+.add-staff-training {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid #d7e6f7;
+    border-radius: 9px;
+    background: #f0f6fd;
+    font-size: 14px;
+    font-weight: 600;
+    color: #263c58;
+    cursor: pointer;
+}
+
+.add-staff-training input {
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #3478c7;
+}
+
+/* シフトカラー：余白のない角丸ボックス */
+
+.add-staff-color-picker {
+    display: block;
+    width: 56px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #d5dce6;
+    border-radius: 7px;
+    overflow: hidden;
+    background: transparent;
+    cursor: pointer;
+}
+
+.add-staff-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.add-staff-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+.add-staff-color-picker::-moz-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+/* 詳細設定 */
+
+.add-staff-details {
+    overflow: hidden;
+}
+
+.add-staff-details-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 650;
+    color: #263c58;
+}
+
+.add-staff-details-summary::-webkit-details-marker {
+    display: none;
+}
+
+.add-staff-details-summary > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.add-staff-details-summary small {
+    margin-left: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #8391a3;
+}
+
+.add-staff-chevron {
+    width: 9px;
+    height: 9px;
+    margin-right: 4px;
+    border-right: 2px solid #718198;
+    border-bottom: 2px solid #718198;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.add-staff-details[open] .add-staff-chevron {
+    transform: rotate(225deg);
+}
+
+.add-staff-details-body {
+    margin-top: 18px;
+    padding-top: 20px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* Djangoのエラー表示 */
+
+.add-staff-page .errorlist {
+    margin: 2px 0 0;
+    padding-left: 18px;
+    color: #c54444;
+    font-size: 12px;
+}
+
+/* 登録・キャンセルボタン */
+
+.add-staff-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.add-staff-cancel,
+.add-staff-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 43px;
+    padding: 11px 19px;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.add-staff-cancel {
+    border: 1px solid #dce2ea;
+    background: #fff;
+    color: #45566c;
+}
+
+.add-staff-cancel:hover {
+    background: #f4f7fb;
+}
+
+.add-staff-submit {
+    border: 1px solid #3478c7;
+    background: #3478c7;
+    color: #fff;
+}
+
+.add-staff-submit:hover {
+    background: #2865aa;
+}
+
+.add-staff-submit span {
+    font-size: 18px;
+}
+
+/* スマートフォン対応 */
+
+@media (max-width: 480px) {
+    .add-staff-page {
+        padding: 20px 12px 36px;
+    }
+
+    .add-staff-panel {
+        padding: 18px 16px;
+    }
+
+    .add-staff-page-heading h1 {
+        font-size: 21px;
+    }
+
+    .add-staff-names {
+        gap: 10px;
+    }
+}
+
+/* =========================
+   従業員編集画面
+   ========================= */
+
+/* 従業員ID：変更不可 */
+
+.add-staff-field .edit-staff-readonly {
+    background-color: #f4f7fb;
+    color: #718198;
+    cursor: default;
+}
+
+/* ボタン配置 */
+
+.edit-staff-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.edit-staff-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* 退職ボタン */
+
+.edit-staff-retire {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 43px;
+    padding: 11px 19px;
+    border: 1px solid #e7b7b7;
+    border-radius: 7px;
+    background: #fff;
+    color: #bd4a4a;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.edit-staff-retire:hover {
+    background: #fff5f5;
+}
+
+/* スマートフォン対応 */
+
+@media (max-width: 480px) {
+    .edit-staff-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .edit-staff-actions-right {
+        justify-content: flex-end;
+    }
+
+    .edit-staff-retire {
+        align-self: flex-start;
+    }
+}
+/* =========================
+   従業員一覧画面
+   ========================= */
+
+.staff-list-page {
+  background: #f4f7fb;
+  color: #263c58;
+  padding: 24px 16px 30px;
+}
+
+.staff-list-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 22px;
+  color: #263c58;
+}
+
+.staff-list-panel {
+  background: #fff;
+  border: 1px solid #e1e8f1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.staff-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 19px 20px;
+}
+
+.staff-area-label {
+  font-size: 12px;
+  color: #718198;
+  margin: 0 0 5px;
+}
+
+.staff-store-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #263c58;
+}
+
+.staff-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.staff-store-select {
+  height: 39px;
+  min-width: 139px;
+  border: 1px solid #dce5ef;
+  background: #fff;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #263c58;
+  cursor: pointer;
+}
+
+.staff-search-toggle {
+  width: 39px;
+  height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #dce5ef;
+  border-radius: 6px;
+  color: #718198;
+  cursor: pointer;
+}
+
+.staff-search-toggle.is-selected {
+  background: #edf5ff;
+  color: #3478c7;
+  border-color: #c8dff7;
+}
+
+/* 検索欄 */
+
+.staff-search-row {
+  display: none;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+  padding: 0 20px 16px;
+  flex-wrap: wrap;
+}
+
+.staff-search-row.is-open {
+  display: flex;
+}
+
+.staff-search-field {
+  width: 180px;
+  position: relative;
+}
+
+.staff-search-field svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a5b8;
+  pointer-events: none;
+}
+
+.staff-search-field input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  border: 1px solid #dce5ef;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 9px 0 32px;
+  color: #263c58;
+  font-size: 13px;
+  outline: none;
+}
+
+.staff-search-field input::placeholder {
+  color: #94a5b8;
+  opacity: 1;
+}
+
+.staff-search-field input:focus {
+  border-color: #3478c7;
+}
+
+.staff-search-submit {
+  height: 34px;
+  background: #3478c7;
+  border: 1px solid #3478c7;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.staff-search-close {
+  width: 28px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #8292a5;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* 従業員テーブル */
+
+.staff-table-scroll {
+  overflow-x: auto;
+}
+
+.staff-table {
+  width: 100%;
+  min-width: 580px;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.staff-table th {
+  background: #f9fbfe;
+  color: #65768d;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+  padding: 14px 12px;
+  border-top: 1px solid #e1e8f1;
+  border-bottom: 1px solid #e1e8f1;
+  white-space: nowrap;
+}
+
+.staff-table td {
+  background: #fff;
+  font-size: 13px;
+  padding: 15px 12px;
+  border-bottom: 1px solid #edf1f5;
+  vertical-align: middle;
+}
+
+.staff-table tbody tr:nth-child(even) td {
+  background: #fafcff;
+}
+
+.staff-table tbody tr:hover td {
+  background: #f4f8ff;
+}
+
+.staff-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.staff-table .staff-role-column {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.staff-role-mark {
+  color: #3976b7;
+  font-size: 17px !important;
+  font-weight: 700;
+}
+
+.staff-name-link {
+  color: #3478c7;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.staff-name-link:hover {
+  text-decoration: underline;
+}
+
+.staff-id-cell {
+  color: #718198;
+}
+
+.staff-memo-cell {
+  max-width: 205px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #66788c;
+}
+
+.staff-empty {
+  text-align: center;
+  padding: 30px !important;
+  color: #718198;
+}
+
+/* 件数・ページ切り替え */
+
+.staff-list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 17px;
+}
+
+.staff-list-count {
+  font-size: 12px;
+  color: #8391a3;
+  margin: 0;
+}
+
+.staff-pagination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.staff-page-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 33px;
+  height: 33px;
+  padding: 0 9px;
+  border: 1px solid #dce5ef;
+  background: #fff;
+  color: #57728e;
+  border-radius: 6px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.staff-page-button.is-active {
+  background: #3478c7;
+  border-color: #3478c7;
+  color: #fff;
+  font-weight: 700;
+}
+
+.staff-page-button.is-disabled {
+  color: #c1cbd7;
+  background: #f8fafd;
+}
+
+/* 従業員追加ボタン */
+
+.staff-add-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 19px;
+}
+
+.staff-add-button {
+  display: inline-block;
+  background: #3478c7;
+  border: 1px solid #3478c7;
+  color: #fff;
+  border-radius: 7px;
+  padding: 11px 17px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.staff-add-button:hover,
+.staff-search-submit:hover {
+  background: #2868b0;
+}
+
+/* 従業員一覧：見出しとデータの位置を揃える */
+
+.staff-table th {
+  text-align: left;
+}
+
+.staff-table th.staff-role-column,
+.staff-table td.staff-role-column {
+  text-align: center;
+}
 /* ==========================================
    シフト編集画面
    edit_shift.html
@@ -238,8 +1783,6 @@
 .edit-layout.is-expanded .edit-preferences-card {
     display: none;
 }
-
-
 /* ==========================================
    カード見出し・ボタン
    ========================================== */
@@ -369,7 +1912,6 @@
     border-right: 1px solid #e5e8ed;
     white-space: nowrap;
 }
-
 .edit-staff-timeline {
     position: relative;
     height: 312px;
@@ -424,8 +1966,6 @@
     font-size: 11px;
     color: #777;
 }
-
-
 /* ==========================================
    シフト登録・編集フォーム
    ========================================== */
@@ -572,8 +2112,6 @@
 .preference-muted {
     color: #777;
 }
-
-
 /* ==========================================
    スマートフォン表示
    ========================================== */
