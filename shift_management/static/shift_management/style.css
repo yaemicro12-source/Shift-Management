@@ -2166,3 +2166,38 @@
         padding: 10px 5px;
     }
 }
+/* シフトグラフ全体をスクロール可能にする */
+.edit-chart {
+    max-height: 420px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: flex-start;
+}
+
+/* スタッフ欄の横スクロールは維持 */
+.edit-staff-scroll {
+    overflow-x: auto;
+}
+/* 拡大時はグラフを全幅にする */
+.edit-layout.is-expanded {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* グラフを上段に配置 */
+.edit-layout.is-expanded .edit-chart-card {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+/* 編集フォームを非表示にせず下段へ */
+.edit-layout.is-expanded .edit-form-card {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+}
+
+/* 希望シフト一覧は拡大中も非表示 */
+.edit-layout.is-expanded .edit-preferences-card {
+    display: none;
+}

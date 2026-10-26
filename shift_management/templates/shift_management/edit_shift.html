@@ -27,8 +27,12 @@
             <label for="store-filter">店舗</label>
             <select id="store-filter">
                 <option value="">すべて</option>
+
                 {% for store in stores %}
-                    <option value="{{ store.id }}">
+                    <option
+                        value="{{ store.id }}"
+                        {% if selected_store_id == store.id|stringformat:"s" %}selected{% endif %}
+                    >
                         {{ store.name }}
                     </option>
                 {% endfor %}
@@ -158,7 +162,7 @@
                         時間
                     </div>
 
-                    <div class="edit-time-labels">
+                    <div class="edit-time-labels" style="height: {{ chart_height }}px;">
                         {% for hour in chart_hours %}
                         <span
                             class="edit-time-label"
@@ -190,12 +194,12 @@
                                 {{ item.staff.name }}
                             </div>
 
-                            <div class="edit-staff-timeline">
+                            <div class="edit-staff-timeline" style="height: {{ chart_height }}px;">
 
                                 {% for bar in item.bars %}
                                 <a
                                     class="edit-shift-bar"
-                                    href="?date={{ bar.date|date:'Y-m-d' }}&shift_id={{ bar.id }}"
+                                    href="?date={{ bar.date|date:'Y-m-d' }}&shift_id={{ bar.id }}{% if selected_store_id %}&store={{ selected_store_id }}{% endif %}"
                                     style="
                                         top: {{ bar.top }}px;
                                         height: {{ bar.height }}px;
@@ -439,7 +443,23 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    // 店舗切り替え
+    const storeFilter = document.getElementById("store-filter");
 
+    storeFilter.addEventListener("change", function () {
+        const url = new URL(window.location.href);
+
+        if (storeFilter.value) {
+            url.searchParams.set("store", storeFilter.value);
+        } else {
+            url.searchParams.delete("store");
+        }
+
+        // 別店舗のシフトを選択したままにしない
+        url.searchParams.delete("shift_id");
+
+        window.location.href = url.toString();
+    });
     // ==========================================
     // グラフ拡大・縮小
     // ==========================================

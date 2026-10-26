@@ -258,17 +258,105 @@ def edit_shift(request):
     )
 
     # その日の全スタッフのシフト
+    # 画面で選択されている店舗
+    selected_store_id = request.GET.get("store", "")
+
+    # 選択日のシフトを取得
     day_shifts = ShiftAssignment.objects.filter(
         work_date=selected_date
-    ).select_related("staff").order_by("id")
+    )
 
-    # 10:00～23:00（1時間 = 24px）
+    # 店舗が選択されている場合だけ絞り込む
+    if selected_store_id:
+        day_shifts = day_shifts.filter(
+            store_id=selected_store_id
+        )
+
+    day_shifts = day_shifts.select_related(
+        "staff"
+    ).order_by("id")
+
+    PIXELS_PER_HOUR = 24
+
+    
+    # 選択中の店舗を取得
+    if selected_store_id:
+        selected_store = stores.filter(
+            id=selected_store_id
+        ).first()
+    else:
+        selected_store = None
+
+    # 店舗ごとの営業時間を分単位に変換
+    store_hours = []
+
+    for store in stores:
+        opening_minutes = (
+            store.opening_time.hour * 60
+            + store.opening_time.minute
+        )
+
+        closing_minutes = (
+            store.closing_time.hour * 60
+            + store.closing_time.minute
+        )
+
+        # 閉店が開店以前なら24時以降として扱う
+        if closing_minutes <= opening_minutes:
+            closing_minutes += 24 * 60
+
+        store_hours.append({
+            "id": store.id,
+            "opening": opening_minutes,
+            "closing": closing_minutes,
+        })
+
+    # 選択店舗があればその営業時間を使用
+    if selected_store:
+        hours_data = next(
+            (
+                item for item in store_hours
+                if item["id"] == selected_store.id
+            ),
+            None
+        )
+    else:
+        hours_data = None
+
+    if hours_data:
+        chart_start_minutes = hours_data["opening"]
+        chart_end_minutes = hours_data["closing"]
+
+    elif store_hours:
+        # すべての店舗の営業時間を含める
+        chart_start_minutes = min(
+            item["opening"] for item in store_hours
+        )
+        chart_end_minutes = max(
+            item["closing"] for item in store_hours
+        )
+
+    else:
+        chart_start_minutes = 6 * 60
+        chart_end_minutes = 24 * 60
+
+    # 開店1時間前・閉店1時間後
+    CHART_START_HOUR = (chart_start_minutes - 60) // 60
+    CHART_END_HOUR = (chart_end_minutes + 60 + 59) // 60
+
+    chart_height = (
+        CHART_END_HOUR - CHART_START_HOUR
+    ) * PIXELS_PER_HOUR
+
     chart_hours = [
         {
-            "label": f"{hour}:00",
-            "top": (hour - 10) * 24,
+            "label": f"{hour:02d}:00",
+            "top": (hour - CHART_START_HOUR) * PIXELS_PER_HOUR,
         }
-        for hour in range(10, 24)
+        for hour in range(
+            CHART_START_HOUR,
+            CHART_END_HOUR + 1
+        )
     ]
 
     chart_staffs = []
@@ -289,18 +377,35 @@ def edit_shift(request):
                 shift.start_time.hour * 60
                 + shift.start_time.minute
             )
+
             end_minutes = (
                 shift.end_time.hour * 60
                 + shift.end_time.minute
             )
 
-            # 10:00を基準に位置を計算
-            top = (start_minutes - 600) * 24 / 60
-            height = (end_minutes - start_minutes) * 24 / 60
+            # 日付をまたぐ勤務を24時以降として扱う
+            if end_minutes <= start_minutes:
+                end_minutes += 24 * 60
 
-            # 表示範囲（10:00～23:00）に収める
+            # 深夜0時以降の勤務を24時以降に配置
+            if (
+                CHART_END_HOUR > 24
+                and start_minutes < CHART_START_HOUR * 60
+            ):
+                start_minutes += 24 * 60
+                end_minutes += 24 * 60
+
+            # 勤務バーの位置と高さ
+            top = (
+                start_minutes - CHART_START_HOUR * 60
+            ) * PIXELS_PER_HOUR / 60
+
+            height = (
+                end_minutes - start_minutes
+            ) * PIXELS_PER_HOUR / 60
+
             visible_top = max(0, top)
-            visible_bottom = min(312, top + height)
+            visible_bottom = min(chart_height, top + height)
 
             if visible_bottom <= visible_top:
                 continue
@@ -366,6 +471,8 @@ def edit_shift(request):
         "selected_shift": selected_shift,
         "prev_month_date": prev_month_date,
         "next_month_date": next_month_date,
+        "chart_height": chart_height,
+        "selected_store_id": selected_store_id,
     })
 
     return render(
