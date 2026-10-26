@@ -2201,3 +2201,326 @@
 .edit-layout.is-expanded .edit-preferences-card {
     display: none;
 }
+/* =========================
+   設定トップ画面
+   ========================= */
+
+.settings-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background: #f4f7fb;
+}
+
+.settings-menu-item {
+    display: block;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e1e8f1;
+    border-radius: 9px;
+    color: #263c58;
+    text-decoration: none;
+}
+
+.settings-menu-item h2 {
+    margin: 0 0 8px;
+    color: #263c58;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.settings-menu-item p {
+    margin: 0;
+    color: #718198;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.settings-menu-item span {
+    display: block;
+    margin-top: 12px;
+    color: #999;
+    font-size: 12px;
+}
+
+/* 操作できる設定項目 */
+
+a.settings-menu-item {
+    border-left: 4px solid #3478c7;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+a.settings-menu-item:hover {
+    background: #eaf2fc;
+    border-color: #3478c7;
+}
+
+a.settings-menu-item span {
+    color: #3478c7;
+    font-weight: 600;
+}
+
+/* 準備中の項目 */
+
+div.settings-menu-item {
+    background: #fafbfc;
+}
+
+@media (max-width: 600px) {
+    .settings-menu {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .settings-menu-item {
+        padding: 16px;
+    }
+}
+/* =========================
+   スタッフ評価制度：共通デザイン
+   ========================= */
+
+/* 評価設定・評価項目管理ページ */
+
+.staff-page:has(.evaluation-settings-area),
+.staff-page:has(.evaluation-item),
+.staff-page:has(.evaluation-settings-form) {
+    background: #f4f7fb;
+    color: #263c58;
+    min-height: calc(100vh - 70px);
+}
+
+/* 戻るリンク */
+
+.staff-page:has(.evaluation-settings-form) > a {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #3478c7;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.staff-page:has(.evaluation-settings-form) > a:hover {
+    text-decoration: underline;
+}
+
+/* エリアごとの設定 */
+
+.evaluation-settings-area {
+    padding: 24px;
+    border-bottom: 1px solid #e1e8f1;
+}
+
+.evaluation-settings-area:last-child {
+    border-bottom: none;
+}
+
+.evaluation-settings-area h2 {
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #edf1f5;
+    color: #263c58;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* フォーム */
+
+.evaluation-settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.evaluation-settings-form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.evaluation-settings-form label {
+    color: #45566c;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* チェックボックス */
+
+.evaluation-settings-form label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid #d7e6f7;
+    border-radius: 8px;
+    background: #f0f6fd;
+    color: #263c58;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.evaluation-settings-form input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #3478c7;
+    cursor: pointer;
+}
+
+/* テキスト・数値入力 */
+
+.evaluation-settings-form input[type="text"],
+.evaluation-settings-form input[type="number"],
+.evaluation-settings-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #263c58;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.evaluation-settings-form textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.evaluation-settings-form input:focus,
+.evaluation-settings-form textarea:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+
+/* 保存・追加ボタン */
+
+.evaluation-settings-form .submission-button {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* 評価項目管理へのリンク */
+
+.evaluation-settings-area > .submission-button {
+    margin-top: 12px;
+    background: #fff;
+    color: #3478c7;
+    border: 1px solid #cbd8e8;
+}
+
+.evaluation-settings-area > .submission-button:hover {
+    background: #eaf2fc;
+}
+
+/* =========================
+   評価項目管理画面
+   ========================= */
+
+/* セクション見出し */
+
+.staff-page:has(.evaluation-item) .staff-card > h2,
+.staff-page:has(.evaluation-settings-form) .staff-card > h2 {
+    margin: 24px 24px 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e1e8f1;
+    color: #263c58;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* 共通評価項目 */
+
+.evaluation-item {
+    margin: 12px 24px;
+    padding: 16px 18px;
+    border: 1px solid #e1e8f1;
+    border-left: 3px solid #3478c7;
+    border-radius: 7px;
+    background: #f7f9fc;
+}
+
+.evaluation-item strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #263c58;
+    font-size: 15px;
+}
+
+.evaluation-item p {
+    margin: 5px 0;
+    color: #718198;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* エリア独自の評価項目フォーム */
+
+.staff-card > .evaluation-settings-form {
+    margin: 12px 24px 20px;
+    padding: 20px;
+    border: 1px solid #e1e8f1;
+    border-radius: 9px;
+    background: #fff;
+}
+
+/* 新規追加フォーム */
+
+.staff-card > .evaluation-settings-form:last-child {
+    margin-bottom: 24px;
+    background: #f7f9fc;
+}
+
+/* スマートフォン対応 */
+
+@media (max-width: 600px) {
+    .evaluation-settings-area {
+        padding: 18px 16px;
+    }
+
+    .staff-page:has(.evaluation-settings-form) .staff-card > h2 {
+        margin: 20px 16px 14px;
+    }
+
+    .evaluation-item {
+        margin: 10px 16px;
+        padding: 14px;
+    }
+
+    .staff-card > .evaluation-settings-form {
+        margin: 10px 16px 18px;
+        padding: 16px;
+    }
+}
+/* 設定保存後のメッセージ */
+
+.settings-message {
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #cbd8e8;
+    background: #eaf2fc;
+    color: #3478c7;
+}
+
+.settings-message-success {
+    background: #eaf7ef;
+    border-color: #b9dfc7;
+    color: #287a4b;
+}
+
+.settings-message-error {
+    background: #fff1f1;
+    border-color: #efc3c3;
+    color: #b83b3b;
+}

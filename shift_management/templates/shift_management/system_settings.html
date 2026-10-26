@@ -1,0 +1,51 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}設定{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block header_title %}
+設定
+{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+
+    <section class="staff-card">
+
+        <div class="staff-card-header">
+            <h1>設定</h1>
+        </div>
+
+        <div class="settings-menu">
+
+            <div class="settings-menu-item">
+                <h2>シフト設定</h2>
+                <p>シフト作成・提出期限・人員配置</p>
+                <span>準備中</span>
+            </div>
+
+            <a
+                href="{% url 'shift_management:evaluation_settings' %}"
+                class="settings-menu-item"
+            >
+                <h2>スタッフ評価設定</h2>
+                <p>評価制度・提出期限・評価項目</p>
+                <span>設定を開く →</span>
+            </a>
+
+            <div class="settings-menu-item">
+                <h2>スタッフ管理設定</h2>
+                <p>権限・表示設定</p>
+                <span>準備中</span>
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+{% endblock %}

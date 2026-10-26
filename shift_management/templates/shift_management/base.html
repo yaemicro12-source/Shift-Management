@@ -156,10 +156,14 @@
             {% endif %}
 
             <!-- 設定 -->
-            <button type="button" class="menu-item" disabled>
-                設定
-                <small>準備中</small>
-            </button>
+            {% if user.is_authenticated and user.staffprofile.role == 2 %}
+                <a
+                    href="{% url 'shift_management:system_settings' %}"
+                    class="menu-item"
+                >
+                    設定
+                </a>
+            {% endif %}
 
             <!-- メッセージ -->
             <button type="button" class="menu-item" disabled>

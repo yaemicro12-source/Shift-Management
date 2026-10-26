@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from datetime import datetime, date, timedelta
 import calendar
-from .models import ShiftAssignment
+from .models import ShiftAssignment,Area,EvaluationSetting, StaffEvaluation
 from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference,RequiredStaffingRule,StaffStoreAssignment,ShiftShortage
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLoginForm,ManagerLoginForm
@@ -18,6 +18,118 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
+from .models import EvaluationItem
+
+
+def get_evaluation_targets(evaluator, year, month, area):
+    """
+    指定月に評価者と勤務時間が重なった
+    一般スタッフを抽出する。
+    """
+
+    # 管理者または役職者だけが評価可能
+    if evaluator.role != 2 and not evaluator.is_position_holder:
+        return []
+
+    # 評価者が実際に勤務した確定シフト
+    evaluator_shifts = ShiftAssignment.objects.filter(
+        staff=evaluator,
+        store__area=area,
+        work_date__year=year,
+        work_date__month=month,
+        status=2
+    ).select_related("store", "shift_time_slot")
+
+    target_ids = set()
+
+    for evaluator_shift in evaluator_shifts:
+        # 同じ店舗・同じ日の一般スタッフ
+        staff_shifts = ShiftAssignment.objects.filter(
+            store=evaluator_shift.store,
+            work_date=evaluator_shift.work_date,
+            work_date__year=year,
+            work_date__month=month,
+            status=2,
+            staff__role=1,
+            staff__is_position_holder=False,
+            staff__is_active=True
+        ).exclude(
+            staff=evaluator
+        ).select_related("staff", "shift_time_slot")
+
+        for staff_shift in staff_shifts:
+            # 個別時刻がなければシフト枠の時刻を使用
+            evaluator_start = (
+                evaluator_shift.start_time
+                or (
+                    evaluator_shift.shift_time_slot.start_time
+                    if evaluator_shift.shift_time_slot else None
+                )
+            )
+            evaluator_end = (
+                evaluator_shift.end_time
+                or (
+                    evaluator_shift.shift_time_slot.end_time
+                    if evaluator_shift.shift_time_slot else None
+                )
+            )
+            staff_start = (
+                staff_shift.start_time
+                or (
+                    staff_shift.shift_time_slot.start_time
+                    if staff_shift.shift_time_slot else None
+                )
+            )
+            staff_end = (
+                staff_shift.end_time
+                or (
+                    staff_shift.shift_time_slot.end_time
+                    if staff_shift.shift_time_slot else None
+                )
+            )
+
+            if None in (
+                evaluator_start,
+                evaluator_end,
+                staff_start,
+                staff_end
+            ):
+                continue
+
+            # 深夜をまたぐ勤務にも対応
+            evaluator_start_dt = datetime.combine(
+                evaluator_shift.work_date, evaluator_start
+            )
+            evaluator_end_dt = datetime.combine(
+                evaluator_shift.work_date, evaluator_end
+            )
+            staff_start_dt = datetime.combine(
+                staff_shift.work_date, staff_start
+            )
+            staff_end_dt = datetime.combine(
+                staff_shift.work_date, staff_end
+            )
+
+            if evaluator_end_dt <= evaluator_start_dt:
+                evaluator_end_dt += timedelta(days=1)
+
+            if staff_end_dt <= staff_start_dt:
+                staff_end_dt += timedelta(days=1)
+
+            # 1分以上重なるスタッフだけを追加
+            overlap_start = max(
+                evaluator_start_dt, staff_start_dt
+            )
+            overlap_end = min(
+                evaluator_end_dt, staff_end_dt
+            )
+
+            if (overlap_end - overlap_start).total_seconds() >= 60:
+                target_ids.add(staff_shift.staff_id)
+
+    return StaffProfile.objects.filter(
+        id__in=target_ids
+    ).order_by("name")
 
 def get_calendar_data(year = None,month = None,day = None): 
     if year == None:
@@ -677,8 +789,8 @@ def generate_shift(request):
     # スタッフごとの勤務時間を管理
     weekly_minutes = {}
     monthly_minutes = {}
-    start_date = end_date - timedelta(days=5)
     end_date = date(year, month, 1) - timedelta(days=1)
+    start_date = end_date - timedelta(days=5)
     working_days = {}
     previous_shifts = ShiftAssignment.objects.filter(status=2,work_date__range=(start_date,end_date))
     for shift in previous_shifts:
@@ -817,8 +929,7 @@ def generate_shift(request):
 
             for worker in selected_workers:
                 assigned_staff.add(worker)
-                working_days.setdefault(shift.workr.id, set()).add(target_date)
-
+                working_days.setdefault(worker.id, set()).add(target_date)
                 # 選ばれたスタッフの勤務時間を加算
                 week_key = (worker.id, week_start)
                 month_key = worker.id
@@ -860,4 +971,262 @@ def message(request):
         return render(
         request,
         'shift_management/message.html',
+    )
+
+@login_required(login_url="shift_management:manager_login")
+def evaluation_list(request):
+    """前月分の評価シート一覧"""
+
+    evaluator = get_object_or_404(
+        StaffProfile,
+        user=request.user
+    )
+
+    if evaluator.role != 2 and not evaluator.is_position_holder:
+        raise PermissionDenied
+
+    today = timezone.localdate()
+    previous_month = today.replace(day=1) - timedelta(days=1)
+
+    year = previous_month.year
+    month = previous_month.month
+
+    scopes = ManagementScope.objects.filter(
+        manager=evaluator
+    )
+
+    areas = Area.objects.filter(
+        Q(managementscope__in=scopes)
+        | Q(store__managementscope__in=scopes)
+    ).distinct()
+
+    evaluation_rows = []
+
+    for area in areas:
+        setting = EvaluationSetting.objects.filter(
+            area=area,
+            is_enabled=True
+        ).first()
+
+        if setting is None:
+            continue
+
+        targets = get_evaluation_targets(
+            evaluator=evaluator,
+            year=year,
+            month=month,
+            area=area
+        )
+
+        for staff in targets:
+            evaluation = StaffEvaluation.objects.filter(
+                area=area,
+                evaluator=evaluator,
+                staff=staff,
+                year=year,
+                month=month
+            ).first()
+
+            evaluation_rows.append({
+                "area": area,
+                "staff": staff,
+                "submitted": (
+                    evaluation is not None
+                    and evaluation.submitted_at is not None
+                ),
+            })
+
+    return render(
+        request,
+        "shift_management/evaluation_list.html",
+        {
+            "year": year,
+            "month": month,
+            "evaluation_rows": evaluation_rows,
+            "staff_name": evaluator.name,
+        }
+    )
+
+@manager_required
+def evaluation_settings(request):
+    """管轄エリアの評価制度設定"""
+
+    manager = request.user.staffprofile
+
+    scopes = ManagementScope.objects.filter(
+        manager=manager
+    )
+
+    area_ids = set()
+
+    for scope in scopes:
+        if scope.area_id:
+            area_ids.add(scope.area_id)
+
+        if scope.store_id:
+            area_ids.add(scope.store.area_id)
+
+    areas = Area.objects.filter(
+        id__in=area_ids
+    ).order_by("name")
+
+    if request.method == "POST":
+        area_id = request.POST.get("area_id")
+
+        area = get_object_or_404(
+            areas,
+            pk=area_id
+        )
+
+        is_enabled = request.POST.get("is_enabled") == "on"
+
+        try:
+            deadline_day = int(
+                request.POST.get("deadline_day", "15")
+            )
+        except (ValueError, TypeError):
+            messages.error(request, "提出期限を正しく入力してください。")
+            return redirect("shift_management:evaluation_settings")
+
+        if not 1 <= deadline_day <= 28:
+            messages.error(
+                request,
+                "提出期限は1日から28日までで指定してください。"
+            )
+            return redirect("shift_management:evaluation_settings")
+
+        EvaluationSetting.objects.update_or_create(
+            area=area,
+            defaults={
+                "is_enabled": is_enabled,
+                "deadline_day": deadline_day,
+            }
+        )
+
+        messages.success(
+            request,
+            f"{area.name}の評価設定を保存しました。"
+        )
+
+        return redirect("shift_management:evaluation_settings")
+
+    settings_rows = []
+
+    for area in areas:
+        setting, created = EvaluationSetting.objects.get_or_create(
+            area=area
+        )
+
+        settings_rows.append({
+            "area": area,
+            "setting": setting,
+        })
+
+    return render(
+        request,
+        "shift_management/evaluation_settings.html",
+        {
+            "settings_rows": settings_rows,
+            "staff_name": manager.name,
+        }
+    )
+@manager_required
+def system_settings(request):
+    """システム全体の設定トップページ"""
+
+    return render(
+        request,
+        "shift_management/system_settings.html"
+    )
+
+@manager_required
+def evaluation_items(request, area_id):
+    """エリア独自の評価項目管理"""
+
+    manager = request.user.staffprofile
+
+    scopes = ManagementScope.objects.filter(
+        manager=manager
+    )
+
+    allowed_area_ids = set()
+
+    for scope in scopes:
+        if scope.area_id:
+            allowed_area_ids.add(scope.area_id)
+
+        if scope.store_id:
+            allowed_area_ids.add(scope.store.area_id)
+
+    area = get_object_or_404(
+        Area,
+        id=area_id,
+        id__in=allowed_area_ids
+    )
+
+    if request.method == "POST":
+        item_id = request.POST.get("item_id")
+        name = request.POST.get("name", "").strip()
+        description = request.POST.get(
+            "description", ""
+        ).strip()
+
+        try:
+            weight = int(request.POST.get("weight", "1"))
+        except (ValueError, TypeError):
+            messages.error(request, "配点を正しく入力してください。")
+            return redirect(
+                "shift_management:evaluation_items",
+                area_id=area.id
+            )
+
+        if not name or len(name) > 100 or not 1 <= weight <= 100:
+            messages.error(
+                request,
+                "項目名と配点を正しく入力してください。"
+            )
+            return redirect(
+                "shift_management:evaluation_items",
+                area_id=area.id
+            )
+
+        if item_id:
+            item = get_object_or_404(
+                EvaluationItem,
+                id=item_id,
+                area=area
+            )
+        else:
+            item = EvaluationItem(area=area)
+
+        item.name = name
+        item.description = description
+        item.weight = weight
+        item.save()
+
+        messages.success(request, "評価項目を保存しました。")
+
+        return redirect(
+            "shift_management:evaluation_items",
+            area_id=area.id
+        )
+
+    common_items = EvaluationItem.objects.filter(
+        area__isnull=True,
+        is_active=True
+    ).order_by("id")
+
+    area_items = EvaluationItem.objects.filter(
+        area=area,
+        is_active=True
+    ).order_by("id")
+
+    return render(
+        request,
+        "shift_management/evaluation_items.html",
+        {
+            "area": area,
+            "common_items": common_items,
+            "area_items": area_items,
+        }
     )

@@ -22,4 +22,24 @@ urlpatterns = [
     ),
     path('message/',views.message,name='message'),
     path('logout/',views.logout_view,name='logout'),
+    path(
+        'evaluations/',
+        views.evaluation_list,
+        name='evaluation_list'
+    ),
+    path(
+        "settings/evaluation/",
+        views.evaluation_settings,
+        name="evaluation_settings"
+    ),
+    path(
+        "settings/evaluation/<int:area_id>/items/",
+        views.evaluation_items,
+        name="evaluation_items"
+    ),
+    path(
+        "settings/",
+        views.system_settings,
+        name="system_settings"
+    ),
 ]

@@ -1,0 +1,94 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}スタッフ評価設定{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block header_title %}スタッフ評価設定{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="settings-message {% if message.tags %}settings-message-{{ message.tags }}{% endif %}"
+                role="status">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <a href="{% url 'shift_management:system_settings' %}">
+        ← 設定に戻る
+    </a>
+
+    <section class="staff-card">
+        <div class="staff-card-header">
+            <h1>スタッフ評価設定</h1>
+        </div>
+
+        {% for row in settings_rows %}
+
+            <div class="evaluation-settings-area">
+                <h2>{{ row.area.name }}</h2>
+
+                <form method="post" class="evaluation-settings-form">
+                    {% csrf_token %}
+
+                    <input
+                        type="hidden"
+                        name="area_id"
+                        value="{{ row.area.id }}"
+                    >
+
+                    <div>
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="is_enabled"
+                                {% if row.setting.is_enabled %}checked{% endif %}
+                            >
+                            評価制度を有効にする
+                        </label>
+                    </div>
+
+                    <div>
+                        <label for="deadline_{{ row.area.id }}">
+                            毎月の評価提出期限
+                        </label>
+
+                        <input
+                            type="number"
+                            id="deadline_{{ row.area.id }}"
+                            name="deadline_day"
+                            min="1"
+                            max="28"
+                            value="{{ row.setting.deadline_day }}"
+                            required
+                        >
+                        日
+                    </div>
+
+                    <button type="submit" class="submission-button">
+                        設定を保存
+                    </button>
+                </form>
+
+                <a
+                    href="{% url 'shift_management:evaluation_items' row.area.id %}"
+                    class="submission-button"
+                >
+                    評価項目を管理
+                </a>
+            </div>
+
+        {% empty %}
+            <p>管理対象のエリアが登録されていません。</p>
+        {% endfor %}
+
+    </section>
+
+</div>
+{% endblock %}

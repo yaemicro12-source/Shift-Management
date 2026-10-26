@@ -726,3 +726,195 @@ class Message(models.Model):
         null=True,
         blank=True,
         verbose_name = "既読日時") # 既読日時
+
+class EvaluationSetting(models.Model):
+        """エリアごとの評価制度設定"""
+
+        area = models.OneToOneField(
+            Area,
+            on_delete=models.CASCADE,
+            related_name="evaluation_setting"
+        )
+        is_enabled = models.BooleanField(
+            default=False,
+            verbose_name="評価制度を利用する"
+        )
+        deadline_day = models.PositiveSmallIntegerField(
+            default=15,
+            verbose_name="毎月の評価提出期限（日）"
+        )
+
+        def __str__(self):
+            return f"{self.area.name}の評価設定"
+
+
+class EvaluationItem(models.Model):
+    """共通・エリア独自の評価項目"""
+
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="evaluation_items",
+        verbose_name="対象エリア"
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="評価項目名"
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name="評価基準の説明"
+    )
+    weight = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name="配点の重み"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="使用中"
+    )
+
+    def __str__(self):
+        return self.name
+
+class StaffEvaluation(models.Model):
+    """スタッフの月次評価シート"""
+
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.PROTECT,
+        related_name="staff_evaluations",
+        verbose_name="評価対象エリア"
+    )
+    evaluator = models.ForeignKey(
+        StaffProfile,
+        on_delete=models.PROTECT,
+        related_name="evaluations_given",
+        verbose_name="評価者"
+    )
+    staff = models.ForeignKey(
+        StaffProfile,
+        on_delete=models.PROTECT,
+        related_name="evaluations_received",
+        verbose_name="評価対象スタッフ"
+    )
+    year = models.PositiveSmallIntegerField(
+        verbose_name="評価対象年"
+    )
+    month = models.PositiveSmallIntegerField(
+        verbose_name="評価対象月"
+    )
+    total_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="総合評価点"
+    )
+    comment = models.TextField(
+        blank=True,
+        verbose_name="評価コメント"
+    )
+    submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="提出日時"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "area", "evaluator", "staff",
+                    "year", "month"
+                ],
+                name="unique_monthly_staff_evaluation"
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.year}年{self.month}月 "
+            f"{self.staff} / 評価者:{self.evaluator}"
+        )
+
+
+class EvaluationScore(models.Model):
+    """評価シートの項目別点数"""
+
+    evaluation = models.ForeignKey(
+        StaffEvaluation,
+        on_delete=models.CASCADE,
+        related_name="scores",
+        verbose_name="評価シート"
+    )
+    item = models.ForeignKey(
+        EvaluationItem,
+        on_delete=models.PROTECT,
+        verbose_name="評価項目"
+    )
+    item_name = models.CharField(
+        max_length=100,
+        verbose_name="評価時点の項目名"
+    )
+    item_weight = models.PositiveSmallIntegerField(
+        verbose_name="評価時点の配点の重み"
+    )
+    score = models.PositiveSmallIntegerField(
+        verbose_name="評価点数"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["evaluation", "item"],
+                name="unique_evaluation_item_score"
+            )
+        ]
+
+
+class EvaluationAdjustment(models.Model):
+    """管理者による最終評価値の補正履歴"""
+
+    staff = models.ForeignKey(
+        StaffProfile,
+        on_delete=models.PROTECT,
+        related_name="evaluation_adjustments",
+        verbose_name="評価対象スタッフ"
+    )
+    adjusted_by = models.ForeignKey(
+        StaffProfile,
+        on_delete=models.PROTECT,
+        related_name="adjustments_made",
+        verbose_name="変更した管理者"
+    )
+    previous_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="変更前の最終評価値"
+    )
+    new_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name="変更後の最終評価値"
+    )
+    reason = models.TextField(
+        verbose_name="変更理由"
+    )
+    adjusted_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="変更日時"
+    )
+
+    def __str__(self):
+        return f"{self.staff} : {self.previous_score} → {self.new_score}"
