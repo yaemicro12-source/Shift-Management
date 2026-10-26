@@ -3,7 +3,7 @@ from django.shortcuts import render
 from datetime import datetime, date, timedelta
 import calendar
 from .models import ShiftAssignment
-from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference,RequiredStaffingRule,StaffStoreAssignment
+from .models import StaffProfile ,Store,ShiftTimeSlot,ManagementScope,ShiftSubmission,ShiftPreference,RequiredStaffingRule,StaffStoreAssignment,ShiftShortage
 from django.http import HttpResponseBadRequest
 from .forms import ShiftAssignmentForm,StaffProfileForm,StaffEditForm,StaffLoginForm,ManagerLoginForm
 from django.shortcuts import render, get_object_or_404, redirect
@@ -586,13 +586,14 @@ def generate_shift(request):
             canworkers = []  # 条件に一致したスタッフ
 
             # シフト枠の勤務時間を分単位で計算
-            start_datetime = datetime.combine(
-                target_date,
-                rule.shift_time_slot.start_time
-            )
+
             end_datetime = datetime.combine(
                 target_date,
                 rule.shift_time_slot.end_time
+            )
+            start_datetime = datetime.combine(
+                target_date,
+                rule.shift_time_slot.start_time
             )
 
             work_minutes = int(
@@ -677,9 +678,13 @@ def generate_shift(request):
                                         check_date = check_date-timedelta(
                                             days=1
                                         )
+                                    if consecutive_days>= 5:
+                                        continue
 
+                                    
 
                                     canworkers.append(staff)
+
                                     
             # 必要人数を上限としてスタッフを選択
             selected_workers = canworkers[:rule.required_count]
@@ -701,12 +706,27 @@ def generate_shift(request):
                     monthly_minutes.get(month_key, 0)
                     + work_minutes
                 )
+                ShiftAssignment.objects.create(
+                    staff= worker,
+                    store = rule.store,
+                    work_date = target_date,
+                    shift_time_slot = rule.shift_time_slot,
+                    status = 1
+                )
 
             # 人数不足を計算
             if len(selected_workers) < rule.required_count:
                 shortage = (
                     rule.required_count - len(selected_workers)
                 )
+                ShiftShortage.objects.create(
+                    store = rule.store,
+                    target_date = target_date,
+                    shift_time_slot = rule.shift_time_slot,
+                    required_count = rule.required_count,
+                    assigned_count = rule.required_count - shortage
+                )
+            
 
 
 
