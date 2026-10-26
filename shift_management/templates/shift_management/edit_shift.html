@@ -2,6 +2,7 @@
 {% extends "shift_management/base.html" %}
 {% load static %}
 
+
 {% block title %}シフト編集{% endblock %}
 {% block header_title %}シフト管理システム{% endblock %}
 
@@ -441,8 +442,49 @@
 
 </main>
 
+{{ existing_shift_pairs|json_script:"existing-shift-pairs" }}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        const shiftForm = document.getElementById("shift-edit-form");
+
+    const existingShifts = JSON.parse(
+        document.getElementById("existing-shift-pairs").textContent
+    );
+
+    shiftForm.addEventListener("submit", function (event) {
+        // 登録以外の操作では確認しない
+        if (event.submitter?.value !== "save") return;
+
+        // 既存シフトの編集では確認しない
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("shift_id")) return;
+
+        const staffInput = shiftForm.querySelector('[name="staff"]');
+        const dateInput = shiftForm.querySelector('[name="work_date"]');
+
+        if (!staffInput || !dateInput) return;
+
+        const staffId = Number(staffInput.value);
+        const workDate = dateInput.value;
+
+        const alreadyExists = existingShifts.some(function (shift) {
+            return (
+                shift.staff_id === staffId &&
+                shift.date === workDate
+            );
+        });
+
+        if (!alreadyExists) return;
+
+        const confirmed = confirm(
+            "このスタッフは選択した日にすでにシフトが登録されています。\n" +
+            "別店舗での勤務を含め、追加で登録しますか？"
+        );
+
+        if (!confirmed) {
+            event.preventDefault();
+        }
+    });
     // 店舗切り替え
     const storeFilter = document.getElementById("store-filter");
 

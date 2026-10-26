@@ -207,7 +207,7 @@ def edit_shift(request):
 
     if shift_id:
         selected_shift = get_object_or_404(
-            shifts,
+            ShiftAssignment,
             id=shift_id
         )
 
@@ -215,9 +215,12 @@ def edit_shift(request):
         action = request.POST.get("action")
 
         if action == "delete" and selected_shift is not None:
+            deleted_date = selected_shift.work_date
             selected_shift.delete()
-            return redirect("shift_management:edit_shift")
 
+            return redirect(
+                f"/edit_shift/?date={deleted_date:%Y-%m-%d}"
+            )
         form = ShiftAssignmentForm(
             request.POST,
             instance=selected_shift
@@ -227,6 +230,10 @@ def edit_shift(request):
             shift = form.save(commit=False)
             shift.status = 1
             shift.save()
+
+            return redirect(
+                f"/edit_shift/?date={shift.work_date:%Y-%m-%d}"
+            )
     else:
         form = ShiftAssignmentForm(
             instance=selected_shift,
@@ -358,6 +365,15 @@ def edit_shift(request):
             CHART_END_HOUR + 1
         )
     ]
+    existing_shift_pairs = [
+        {
+            "staff_id": shift["staff_id"],
+            "date": shift["work_date"].isoformat(),
+        }
+        for shift in ShiftAssignment.objects.values(
+            "staff_id", "work_date"
+        ).distinct()
+    ]
 
     chart_staffs = []
 
@@ -464,6 +480,7 @@ def edit_shift(request):
     else:
         next_month_date = date(display_year, display_month + 1, 1)
 
+    
     context.update({
         "chart_hours": chart_hours,
         "chart_staffs": chart_staffs,
@@ -473,6 +490,8 @@ def edit_shift(request):
         "next_month_date": next_month_date,
         "chart_height": chart_height,
         "selected_store_id": selected_store_id,
+        "existing_shift_pairs": existing_shift_pairs,
+        
     })
 
     return render(
