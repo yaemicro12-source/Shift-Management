@@ -19,6 +19,43 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.models import Q
 from .models import EvaluationItem
+from .models import ShiftSchedule
+
+def get_evaluation_areas(evaluator, year, month):
+    """
+    評価者が評価できるエリアを取得する。
+
+    管理者：ManagementScopeで管理しているエリア
+    役職者：対象月に確定シフトで勤務したエリア
+    """
+
+    if evaluator.role == 2:
+        scopes = ManagementScope.objects.filter(
+            manager=evaluator
+        )
+
+        return Area.objects.filter(
+            Q(managementscope__in=scopes)
+            | Q(store__managementscope__in=scopes)
+        ).distinct().order_by("name")
+
+    if evaluator.is_position_holder:
+        area_ids = ShiftAssignment.objects.filter(
+            staff=evaluator,
+            work_date__year=year,
+            work_date__month=month,
+            status=2,
+            store__isnull=False
+        ).values_list(
+            "store__area_id",
+            flat=True
+        ).distinct()
+
+        return Area.objects.filter(
+            id__in=area_ids
+        ).order_by("name")
+
+    return Area.objects.none()
 
 
 def get_evaluation_targets(evaluator, year, month, area):
@@ -156,26 +193,93 @@ def get_calendar_data(year = None,month = None,day = None):
         "year":year
     }
 
+def get_main_shift_context(request):
+    today = timezone.localdate()
+
+    try:
+        offset = int(request.GET.get("month", "0"))
+    except (ValueError, TypeError):
+        offset = 0
+
+    offset = max(-1, min(1, offset))
+
+    # 前月・当月・次月を計算
+    total_months = today.year * 12 + today.month - 1 + offset
+    year, month_index = divmod(total_months, 12)
+    month = month_index + 1
+
+    context = get_calendar_data(year, month)
+
+    shifts = ShiftAssignment.objects.filter(
+        staff__user=request.user,
+        work_date__year=year,
+        work_date__month=month,
+        status=2,
+    ).select_related(
+        "store",
+        "shift_time_slot",
+    ).order_by("work_date", "start_time")
+
+    # 次月は公開済みのエリアのシフトだけ表示
+    if offset == 1:
+        published_area_ids = ShiftSchedule.objects.filter(
+            year=year,
+            month=month,
+            status=4,
+        ).values_list("area_id", flat=True)
+
+        shifts = shifts.filter(
+            store__area_id__in=published_area_ids
+        )
+
+        is_published = ShiftSchedule.objects.filter(
+            year=year,
+            month=month,
+            status=4,
+            area_id__in=StaffStoreAssignment.objects.filter(
+                staff__user=request.user,
+                starts_on__lte=date(year, month, calendar.monthrange(year, month)[1]),
+            ).filter(
+                Q(ends_on__isnull=True) |
+                Q(ends_on__gte=date(year, month, 1))
+            ).values_list("store__area_id", flat=True)
+        ).exists()
+    else:
+        is_published = True
+
+    context.update({
+        "staff_name": request.user.staffprofile.name,
+        "shifts": shifts,
+        "month_offset": offset,
+        "can_go_previous": offset > -1,
+        "can_go_next": offset < 1,
+        "is_published": is_published,
+        "is_current_month": offset == 0,
+        "today": today,
+        "today_date": today,
+        "today_shifts": ShiftAssignment.objects.filter(
+            staff__user=request.user,
+            work_date=today,
+            status=2,
+        ).select_related("store", "shift_time_slot"),
+    })
+
+    return context
+
 @staff_required
 def staff_main(request):
-    """一般ユーザーメイン画面"""
-    context = get_calendar_data()
-    
-   
-    shifts = ShiftAssignment.objects.filter(
-        staff__user=request.user)
-    
+    context = get_main_shift_context(request)
 
+    context["can_evaluate"] = (
+        request.user.staffprofile.role == 2
+        or request.user.staffprofile.is_position_holder
+    )
 
-    context["staff_name"] = request.user.username
-    context["shifts"] = shifts
-
-        
-    
     return render(
-        request, 'shift_management/staff_main.html',
-        context
-                  )
+        request,
+        "shift_management/staff_main.html",
+        context,
+    )
 
 @login_required(login_url="shift_management:staff_login")
 def shift_submission(request):
@@ -252,26 +356,17 @@ def shift_submission(request):
         context
     )
 
+
 @manager_required
 def manager_main(request):
-    """管理者ユーザーメイン画面"""
-    context = get_calendar_data()
-    
-   
-    shifts = ShiftAssignment.objects.filter(
-        staff__user=request.user)
-    
+    context = get_main_shift_context(request)
 
-
-    context["staff_name"] = request.user.username
-    context["shifts"] = shifts
-
-        
-    
     return render(
-        request, 'shift_management/manager_main.html',
-        context
-                  )
+        request,
+        "shift_management/manager_main.html",
+        context,
+    )
+
 @manager_required
 def edit_shift(request):
     """シフト編集画面"""
@@ -995,10 +1090,11 @@ def evaluation_list(request):
         manager=evaluator
     )
 
-    areas = Area.objects.filter(
-        Q(managementscope__in=scopes)
-        | Q(store__managementscope__in=scopes)
-    ).distinct()
+    areas = get_evaluation_areas(
+        evaluator=evaluator,
+        year=year,
+        month=month
+    )
 
     evaluation_rows = []
 
@@ -1252,12 +1348,11 @@ def evaluation_detail(request, area_id, staff_id):
     year = previous_month.year
     month = previous_month.month
 
-    scopes = ManagementScope.objects.filter(manager=evaluator)
-
-    allowed_areas = Area.objects.filter(
-        Q(managementscope__in=scopes)
-        | Q(store__managementscope__in=scopes)
-    ).distinct()
+    allowed_areas = get_evaluation_areas(
+        evaluator=evaluator,
+        year=year,
+        month=month
+    )
 
     area = get_object_or_404(
         allowed_areas,

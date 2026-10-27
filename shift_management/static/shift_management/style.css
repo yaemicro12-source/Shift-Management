@@ -2649,3 +2649,123 @@ div.settings-menu-item {
     line-height: 1.8;
     white-space: pre-wrap;
 }
+.staff-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.staff-action-buttons .submission-button {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+.evaluation-submitted-details {
+    padding: 24px 36px 32px;
+}
+
+.evaluation-submitted-details h2 {
+    margin: 0 0 16px;
+    font-size: 22px;
+    line-height: 1.4;
+}
+
+.evaluation-submitted-details .evaluation-saved-comment {
+    margin: 0 0 24px;
+    padding: 16px;
+    min-height: 0;
+    text-align: left;
+    line-height: 1.6;
+}
+
+.evaluation-submitted-note {
+    margin: 0;
+    color: #7185a4;
+    font-size: 14px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .evaluation-submitted-details {
+        padding: 20px 16px 24px;
+    }
+}
+.evaluation-back-link {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0 16px;
+    color: #607fa8;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.evaluation-back-link:hover {
+    color: #365b88;
+    text-decoration: underline;
+}
+.main-month-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.main-month-navigation h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.main-month-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #edf3fb;
+    color: #426b9d;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.main-month-button:hover {
+    background: #dce9f8;
+}
+
+.main-month-button.is-disabled {
+    background: #f4f5f7;
+    color: #b1b8c2;
+}
+
+.main-shift-notice {
+    margin: 16px 20px;
+    padding: 24px 16px;
+    border-radius: 12px;
+    background: #f3f7fc;
+    color: #627895;
+    text-align: center;
+    line-height: 1.8;
+}
+
+@media (max-width: 600px) {
+    .main-month-navigation {
+        padding: 14px 10px;
+    }
+
+    .main-month-navigation h2 {
+        font-size: 17px;
+    }
+
+    .main-month-button {
+        min-width: 65px;
+        padding: 9px 8px;
+        font-size: 12px;
+    }
+}

@@ -1,3 +1,4 @@
+
 {% extends "shift_management/base.html" %}
 {% load static %}
 
@@ -5,6 +6,196 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+
+<style>
+    .evaluation-input-form {
+        padding: 0 24px 24px;
+    }
+
+    .evaluation-detail-info {
+        padding: 16px 24px;
+        border-bottom: 1px solid #e5e8ed;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .evaluation-detail-info p {
+        margin: 4px 0;
+    }
+
+    .evaluation-score-item {
+        padding: 14px 8px 16px;
+        border-bottom: 1px solid #e5e8ed;
+        text-align: center;
+    }
+
+    .evaluation-score-item h2 {
+        margin: 0 0 4px;
+        color: #263c58;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .evaluation-item-description {
+        margin: 0 0 7px;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .evaluation-item-weight {
+        display: inline-block;
+        margin-bottom: 14px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        background: #f0f5fb;
+        color: #52749a;
+        font-size: 11px;
+    }
+
+    .evaluation-rating {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 0;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+    }
+
+    .evaluation-rating-end {
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .evaluation-rating-option {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .evaluation-rating-option input {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .evaluation-rating-circle {
+        display: block;
+        width: 30px;
+        height: 30px;
+        border: 2px solid #3478c7;
+        border-radius: 50%;
+        background: #fff;
+        transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .evaluation-rating-option input:checked
+    + .evaluation-rating-circle {
+        background: #3478c7;
+        box-shadow: inset 0 0 0 5px #fff;
+    }
+
+    .evaluation-rating-option input:focus-visible
+    + .evaluation-rating-circle {
+        outline: 3px solid #9fc4f0;
+        outline-offset: 3px;
+    }
+
+    .evaluation-rating-guide {
+        display: flex;
+        justify-content: space-between;
+        max-width: 275px;
+        margin: 8px auto 0;
+        color: #8794a5;
+        font-size: 11px;
+    }
+
+    .evaluation-comment-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 24px 0;
+    }
+
+    .evaluation-comment-field label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #263c58;
+    }
+
+    .evaluation-comment-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px;
+        border: 1px solid #dce2ea;
+        border-radius: 7px;
+        font: inherit;
+        resize: vertical;
+    }
+
+    .evaluation-result,
+    .evaluation-saved-comment,
+    .evaluation-empty {
+        margin: 20px 24px;
+    }
+
+    @media (max-width: 600px) {
+        .evaluation-input-form {
+            padding: 0 14px 20px;
+        }
+
+        .evaluation-rating {
+            gap: 6px;
+        }
+
+        .evaluation-rating-option {
+            width: 36px;
+            height: 36px;
+        }
+
+        .evaluation-rating-circle {
+            display: block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #3478c7;
+            border-radius: 50%;
+            background: #fff;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+    }
+    /* 評価グループの見出し */
+    .evaluation-group-heading {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 22px 0 4px;
+        padding: 0 0 10px;
+        border-bottom: 1px solid #dce5f0;
+        color: #263c58;
+        font-size: 15px;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .evaluation-group-heading::before {
+        content: "";
+        width: 3px;
+        height: 18px;
+        border-radius: 3px;
+        background: #3478c7;
+    }
+</style>
 {% endblock %}
 
 {% block header_title %}スタッフ評価入力{% endblock %}
@@ -21,7 +212,7 @@
         {% endfor %}
     {% endif %}
 
-    <a href="{% url 'shift_management:evaluation_list' %}">
+    <a href="{% url 'shift_management:evaluation_list' %}" class="evaluation-back-link">
         ← 評価一覧に戻る
     </a>
 
@@ -45,15 +236,23 @@
                     総合評価：
                     <strong>{{ evaluation.total_score }} / 5.00点</strong>
                 </p>
-                <p>提出日時：{{ evaluation.submitted_at|date:"Y/m/d H:i" }}</p>
+                <p>
+                    提出日時：
+                    {{ evaluation.submitted_at|date:"Y/m/d H:i" }}
+                </p>
             </div>
 
-            <h2>評価コメント</h2>
-            <p class="evaluation-saved-comment">
-                {{ evaluation.comment|default:"コメントなし"|linebreaksbr }}
-            </p>
+            <div class="evaluation-submitted-details">
+                <h2>評価コメント</h2>
 
-            <p>提出済みの評価は変更できません。</p>
+                <p class="evaluation-saved-comment">
+                    {{ evaluation.comment|default:"コメントなし"|linebreaksbr }}
+                </p>
+
+                <p class="evaluation-submitted-note">
+                    提出済みの評価は変更できません。
+                </p>
+            </div>
 
         {% elif deadline_passed %}
 
@@ -67,41 +266,95 @@
                 {% csrf_token %}
 
                 {% for item in items %}
+
+                    {% ifchanged item.area_id %}
+                        <h2 class="evaluation-group-heading">
+                            {% if item.area_id %}
+                                {{ area.name }}独自評価
+                            {% else %}
+                                共通評価
+                            {% endif %}
+                        </h2>
+                    {% endifchanged %}
+
                     <div class="evaluation-score-item">
 
-                        <h2>{{ item.name }}</h2>
+                        <h2 id="item-title-{{ item.id }}">
+                            {{ item.name }}
+                        </h2>
 
                         {% if item.description %}
-                            <p>{{ item.description|linebreaksbr }}</p>
+                            <p class="evaluation-item-description">
+                                {{ item.description|linebreaksbr }}
+                            </p>
                         {% endif %}
 
-                        <p>
-                            重要度：
-                            {% if item.weight == 3 %}
-                                高
-                            {% elif item.weight == 2 %}
-                                普通
-                            {% else %}
-                                低
-                            {% endif %}
-                        </p>
+                        
 
-                        <label for="score_{{ item.id }}">
-                            評価点数
-                        </label>
-
-                        <select
-                            id="score_{{ item.id }}"
-                            name="score_{{ item.id }}"
-                            required
+                        <fieldset
+                            class="evaluation-rating"
+                            aria-labelledby="item-title-{{ item.id }}"
                         >
-                            <option value="">選択してください</option>
-                            <option value="5">5点</option>
-                            <option value="4">4点</option>
-                            <option value="3">3点</option>
-                            <option value="2">2点</option>
-                            <option value="1">1点</option>
-                        </select>
+                            <span class="evaluation-rating-end">1</span>
+
+                            <label class="evaluation-rating-option">
+                                <input
+                                    type="radio"
+                                    name="score_{{ item.id }}"
+                                    value="1"
+                                    aria-label="1点"
+                                    required
+                                >
+                                <span class="evaluation-rating-circle"></span>
+                            </label>
+
+                            <label class="evaluation-rating-option">
+                                <input
+                                    type="radio"
+                                    name="score_{{ item.id }}"
+                                    value="2"
+                                    aria-label="2点"
+                                >
+                                <span class="evaluation-rating-circle"></span>
+                            </label>
+
+                            <label class="evaluation-rating-option">
+                                <input
+                                    type="radio"
+                                    name="score_{{ item.id }}"
+                                    value="3"
+                                    aria-label="3点"
+                                >
+                                <span class="evaluation-rating-circle"></span>
+                            </label>
+
+                            <label class="evaluation-rating-option">
+                                <input
+                                    type="radio"
+                                    name="score_{{ item.id }}"
+                                    value="4"
+                                    aria-label="4点"
+                                >
+                                <span class="evaluation-rating-circle"></span>
+                            </label>
+
+                            <label class="evaluation-rating-option">
+                                <input
+                                    type="radio"
+                                    name="score_{{ item.id }}"
+                                    value="5"
+                                    aria-label="5点"
+                                >
+                                <span class="evaluation-rating-circle"></span>
+                            </label>
+
+                            <span class="evaluation-rating-end">5</span>
+                        </fieldset>
+
+                        <div class="evaluation-rating-guide">
+                            <span>低評価</span>
+                            <span>高評価</span>
+                        </div>
 
                     </div>
                 {% empty %}
@@ -113,6 +366,7 @@
                 {% if items %}
                     <div class="evaluation-comment-field">
                         <label for="comment">評価コメント</label>
+
                         <textarea
                             id="comment"
                             name="comment"

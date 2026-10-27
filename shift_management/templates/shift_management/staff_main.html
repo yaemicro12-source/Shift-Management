@@ -16,39 +16,82 @@
 <div class="staff-page">
 
     <!-- 今日の日付・シフト -->
-    <section class="staff-card">
+<section class="staff-card">
 
-        <div class="staff-card-header">
-            <h1>{{ month }}月{{ day }}日</h1>
-        </div>
+    <div class="staff-card-header">
+        <h1>{{ today_date|date:"n月j日" }}</h1>
+    </div>
 
-        <div class="today-shift-content">
+    <div class="today-shift-content">
 
-            {% for shift in shifts %}
-                {% if shift.work_date.day == day %}
+        {% for shift in today_shifts %}
+            <div class="today-shift-item">
+                <span class="today-shift-label">
+                    今日のシフト：
+                </span>
 
-                    <div class="today-shift-item">
-                        <span class="today-shift-label">
-                            今日のシフト：
-                        </span>
+                <span class="today-shift-store">
+                    {{ shift.store }}
+                </span>
 
-                        <span class="today-shift-store">
-                            {{ shift.store }}
-                        </span>
+                <span class="today-shift-time">
+                    {% if shift.start_time %}
+                        {{ shift.start_time|time:"H:i" }}
+                    {% else %}
+                        {{ shift.shift_time_slot.start_time|time:"H:i" }}
+                    {% endif %}
+                    〜
+                    {% if shift.end_time %}
+                        {{ shift.end_time|time:"H:i" }}
+                    {% else %}
+                        {{ shift.shift_time_slot.end_time|time:"H:i" }}
+                    {% endif %}
+                </span>
+            </div>
+        {% empty %}
+            <p>今日のシフトはありません。</p>
+        {% endfor %}
 
-                        <span class="today-shift-time">
-                            {{ shift.start_time }} 〜 {{ shift.end_time }}
-                        </span>
-                    </div>
+    </div>
 
-                {% endif %}
-            {% endfor %}
-
-        </div>
-    </section>
+</section>
 
     <!-- シフトカレンダー -->
     <section class="staff-card">
+        <div class="main-month-navigation">
+
+        {% if can_go_previous %}
+            <a href="?month={{ month_offset|add:'-1' }}"
+            class="main-month-button">
+                ◀ 前月
+            </a>
+        {% else %}
+            <span class="main-month-button is-disabled">◀ 前月</span>
+        {% endif %}
+
+        <h2>{{ year }}年{{ month }}月</h2>
+
+        {% if can_go_next %}
+            <a href="?month={{ month_offset|add:'1' }}"
+            class="main-month-button">
+                次月 ▶
+            </a>
+        {% else %}
+            <span class="main-month-button is-disabled">次月 ▶</span>
+        {% endif %}
+
+    </div>
+
+    {% if not is_published %}
+        <p class="main-shift-notice">
+            まだシフトが確定していません。<br>
+            管理者がシフトを公開するまでお待ちください。
+        </p>
+    {% elif not shifts %}
+        <p class="main-shift-notice">
+            この月のシフトはありません。
+        </p>
+    {% endif %}
 
         <div class="calendar-wrapper">
             <table class="shift-calendar">
@@ -79,7 +122,7 @@
                                         </div>
 
                                         {% for shift in shifts %}
-                                            {% if shift.work_date.day == day %}
+                                            {% if shift.work_date.year == year and shift.work_date.month == month and shift.work_date.day == day %}
 
                                                 <div class="calendar-shift">
                                                     <span class="calendar-shift-store">
@@ -108,6 +151,7 @@
     </section>
 
     <!-- シフト提出 -->
+   <div class="staff-action-buttons">
     <a
         href="{% url 'shift_management:sift_submission' %}"
         class="submission-button"
@@ -115,5 +159,13 @@
         シフト提出
     </a>
 
+    {% if can_evaluate %}
+    <a
+        href="{% url 'shift_management:evaluation_list' %}"
+        class="submission-button"
+    >
+        スタッフ評価
+    </a>
+    {% endif %}
 </div>
 {% endblock %}
