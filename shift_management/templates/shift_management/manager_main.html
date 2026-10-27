@@ -14,49 +14,18 @@
 
 {% block content %}
 <div class="staff-page">
-
-    <!-- 今日の日付・シフト -->
-<section class="staff-card">
-
-    <div class="staff-card-header">
-        <h1>{{ today_date|date:"n月j日" }}</h1>
-    </div>
-
-    <div class="today-shift-content">
-
-        {% for shift in today_shifts %}
-            <div class="today-shift-item">
-
-                <span class="today-shift-label">
-                    今日のシフト：
-                </span>
-
-                <span class="today-shift-store">
-                    {{ shift.store }}
-                </span>
-
-                <span class="today-shift-time">
-                    {% if shift.start_time %}
-                        {{ shift.start_time|time:"H:i" }}
-                    {% else %}
-                        {{ shift.shift_time_slot.start_time|time:"H:i" }}
-                    {% endif %}
-                    〜
-                    {% if shift.end_time %}
-                        {{ shift.end_time|time:"H:i" }}
-                    {% else %}
-                        {{ shift.shift_time_slot.end_time|time:"H:i" }}
-                    {% endif %}
-                </span>
-
-            </div>
-        {% empty %}
-            <p>今日のシフトはありません。</p>
-        {% endfor %}
-
-    </div>
-
-</section>
+    <div class="shift-create-header">
+    <form
+        method="post"
+        action="{% url 'shift_management:generate_shift' %}"
+        onsubmit="return confirm('担当エリアの翌月シフトを作成しますか？');"
+    >
+        {% csrf_token %}
+        <button type="submit" class="submission-button">
+            シフト作成
+        </button>
+    </form>
+</div>
 
     <!-- 月間シフトカレンダー -->
     <section class="staff-card">

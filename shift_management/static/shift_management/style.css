@@ -2769,3 +2769,127 @@ div.settings-menu-item {
         font-size: 12px;
     }
 }
+/* マネージャー画面右上のシフト作成ボタン */
+.shift-create-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.shift-create-header form {
+    margin: 0;
+}
+
+.shift-create-header .submission-button {
+    width: auto;
+    min-width: 140px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+/* シフト作成ボタン専用 */
+.shift-create-header .submission-button {
+    appearance: none;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    padding: 8px 16px;
+
+    background-color: #eaf1fa;
+    color: #416b9d;
+
+    border: 1px solid #e1e9f3;
+    border-radius: 12px;
+    box-shadow: none;
+
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+
+    cursor: pointer;
+}
+
+.shift-create-header .submission-button {
+    appearance: none;
+    width: 168px;
+    min-width: 0;
+    height: auto;
+    padding: 10px 18px;
+
+    background-color: #d2e2f6;
+    color: #315d91;
+
+    border: 1px solid #b8cde8;
+    border-radius: 12px;
+    box-shadow: none;
+
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.shift-create-header .submission-button:hover {
+    background-color: #bfd5f0;
+}
+
+/* ==========================================
+   他エリアへのシフト登録申請ポップアップ
+========================================== */
+
+.shift-request-dialog {
+    width: min(440px, 90vw);
+    padding: 24px;
+    border: 1px solid #d8e2ef;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 12px 36px rgba(30, 55, 90, 0.15);
+}
+
+.shift-request-dialog::backdrop {
+    background: rgba(20, 35, 55, 0.4);
+}
+
+.shift-request-dialog h2 {
+    margin: 0 0 16px;
+    font-size: 20px;
+}
+
+.shift-request-dialog p {
+    white-space: pre-line;
+    line-height: 1.8;
+}
+
+.shift-request-dialog textarea {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid #d8e2ef;
+    border-radius: 8px;
+    resize: vertical;
+    font: inherit;
+}
+
+.shift-request-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.shift-request-actions button {
+    padding: 10px 16px;
+    border: 1px solid #c8d7e9;
+    border-radius: 8px;
+    background: #edf3fb;
+    color: #315d91;
+    cursor: pointer;
+}
+
+#confirm-shift-request {
+    background: #d2e2f6;
+    font-weight: 600;
+}

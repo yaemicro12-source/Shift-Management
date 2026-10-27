@@ -42,9 +42,14 @@ urlpatterns = [
         views.system_settings,
         name="system_settings"
     ),
-        path(
+    path(
         "evaluations/<int:area_id>/<int:staff_id>/",
         views.evaluation_detail,
         name="evaluation_detail"
+    ),
+    path(
+        "generate_shift/",
+        views.generate_shift,
+        name="generate_shift",
     ),
 ]
