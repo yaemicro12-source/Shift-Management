@@ -317,7 +317,7 @@ def shift_submission(request):
         "year":year,
         "submission_type":submission_type
     }
-
+       
     if request.method == "POST":
         for day in range(1,last_day+1):
             if f"day_{day}" in request.POST:
@@ -375,7 +375,25 @@ def edit_shift(request):
     now_year = today.year
     stores = Store.objects.all()
     timeslots = ShiftTimeSlot.objects.all()
-    
+        # 自分が管理するエリアの店舗だけ登録可能にする
+    manager = request.user.staffprofile
+    scopes = ManagementScope.objects.filter(manager=manager)
+
+    managed_area_ids = set(
+        scopes.exclude(area__isnull=True)
+        .values_list("area_id", flat=True)
+    )
+
+    managed_area_ids.update(
+        Store.objects.filter(
+            id__in=scopes.exclude(store__isnull=True)
+            .values_list("store_id", flat=True)
+        ).values_list("area_id", flat=True)
+    )
+
+    editable_stores = Store.objects.filter(
+        area_id__in=managed_area_ids
+    )
     shifts = ShiftAssignment.objects.filter(
     staff__user=request.user)
     selects = {"エリア","店舗","スタッフ"}
@@ -432,6 +450,7 @@ def edit_shift(request):
             request.POST,
             instance=selected_shift
         )
+        form.fields["store"].queryset = editable_stores
 
         if action == "save" and form.is_valid():
             shift = form.save(commit=False)
@@ -448,6 +467,7 @@ def edit_shift(request):
                 "work_date": f"{display_year}-{display_month:02d}-{display_day:02d}"
             }
         )
+    form.fields["store"].queryset = editable_stores
     hours = range(10, 23)
     staffs = StaffProfile.objects.all()
     context["staffs"] = staffs
@@ -707,6 +727,7 @@ def edit_shift(request):
 
 def staff_login(request):
     """スタッフログイン画面"""
+
     if request.method == "POST":
         form = StaffLoginForm(request.POST)
 
