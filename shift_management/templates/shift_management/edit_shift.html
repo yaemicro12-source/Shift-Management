@@ -444,6 +444,7 @@
 </main>
 
 {{ existing_shift_pairs|json_script:"existing-shift-pairs" }}
+{{ staff_departure_times|json_script:"staff-departure-times" }}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const shiftForm = document.getElementById("shift-edit-form");
@@ -454,39 +455,84 @@
 
     shiftForm.addEventListener("submit", function (event) {
         // 登録以外の操作では確認しない
-        if (event.submitter?.value !== "save") return;
+            const departureTimes = JSON.parse(
+        document.getElementById("staff-departure-times").textContent
+    );
 
-        // 既存シフトの編集では確認しない
-        const url = new URL(window.location.href);
-        if (url.searchParams.has("shift_id")) return;
+    function toMinutes(value) {
+        const [hours, minutes] = value.split(":").map(Number);
+        return hours * 60 + minutes;
+    }
+
+    shiftForm.addEventListener("submit", function (event) {
 
         const staffInput = shiftForm.querySelector('[name="staff"]');
         const dateInput = shiftForm.querySelector('[name="work_date"]');
+        const startInput = shiftForm.querySelector('[name="start_time"]');
+        const endInput = shiftForm.querySelector('[name="end_time"]');
 
-        if (!staffInput || !dateInput) return;
+        if (!staffInput || !dateInput || !startInput || !endInput) return;
 
-        const staffId = Number(staffInput.value);
-        const workDate = dateInput.value;
+        // 新規登録時の既存シフト確認
+        const url = new URL(window.location.href);
 
-        const alreadyExists = existingShifts.some(function (shift) {
-            return (
-                shift.staff_id === staffId &&
-                shift.date === workDate
-            );
-        });
+        if (!url.searchParams.has("shift_id")) {
+            const alreadyExists = existingShifts.some(function (shift) {
+                return (
+                    shift.staff_id === Number(staffInput.value) &&
+                    shift.date === dateInput.value
+                );
+            });
 
-        if (!alreadyExists) return;
-
-        const confirmed = confirm(
-            "このスタッフは選択した日にすでにシフトが登録されています。\n" +
-            "別店舗での勤務を含め、追加で登録しますか？"
-        );
-
-        if (!confirmed) {
-            event.preventDefault();
+            if (alreadyExists && !confirm(
+                "このスタッフは選択した日にすでにシフトが登録されています。\n" +
+                "別店舗での勤務を含め、追加で登録しますか？"
+            )) {
+                event.preventDefault();
+                return;
+            }
         }
+
+        // 新規登録・既存シフトの編集の両方で退勤時刻を確認
+        const departureTime = departureTimes[staffInput.value];
+
+        if (!departureTime || !startInput.value || !endInput.value) return;
+
+        const departureMinutes = toMinutes(departureTime);
+        const endMinutes = toMinutes(endInput.value);
+
+        if (endMinutes <= departureMinutes) return;
+
+        if (departureMinutes <= toMinutes(startInput.value)) {
+            alert(
+                `このスタッフの退勤時間は${departureTime}です。\n` +
+                "開始時間より後に退勤できるよう、勤務時間を変更してください。"
+            );
+            event.preventDefault();
+            return;
+        }
+
+        const difference = endMinutes - departureMinutes;
+
+        let message =
+            `このスタッフの退勤時間は${departureTime}です。\n`;
+
+        if (difference > 15) {
+            message +=
+                `入力した終了時間より${difference}分早い退勤になります。\n` +
+                "自動作成では採用されない時間差です。\n";
+        }
+
+        message += `${departureTime}に合わせて登録しますか？`;
+
+        if (!confirm(message)) {
+            event.preventDefault();
+            return;
+        }
+
+        endInput.value = departureTime;
     });
-    // 店舗切り替え
+        // 店舗切り替え
     const storeFilter = document.getElementById("store-filter");
 
     storeFilter.addEventListener("change", function () {

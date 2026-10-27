@@ -472,6 +472,11 @@ def edit_shift(request):
     hours = range(10, 23)
     staffs = StaffProfile.objects.all()
     context["staffs"] = staffs
+    context["staff_departure_times"] = {
+        str(staff.id): staff.last_train_departure_time.strftime("%H:%M")
+        for staff in staffs
+        if staff.last_train_departure_time is not None
+    }
     context["staff_name"] = request.user.username
     context["shifts"] = shifts
     context["selects"] = selects
