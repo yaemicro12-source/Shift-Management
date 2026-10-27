@@ -905,13 +905,25 @@ def generate_shift(request):
     # スタッフごとの勤務時間を管理
     weekly_minutes = {}
     monthly_minutes = {}
-    end_date = date(year, month, 1) - timedelta(days=1)
-    start_date = end_date - timedelta(days=5)
-    working_days = {}
-    previous_shifts = ShiftAssignment.objects.filter(status=2,work_date__range=(start_date,end_date))
-    for shift in previous_shifts:
-        working_days.setdefault(shift.staff_id, set()).add(shift.work_date)
+    # 対象月の初日
+    month_start = date(year, month, 1)
 
+    # 前月末の5日間を取得
+    previous_start = month_start - timedelta(days=5)
+
+    working_days = {}
+
+    # 前月の確定シフトと対象月の既存シフトを取得
+    existing_shifts = ShiftAssignment.objects.filter(
+        work_date__gte=previous_start,
+        work_date__lt=month_start,
+        status=2
+    )
+
+    for shift in existing_shifts:
+        working_days.setdefault(
+            shift.staff_id, set()
+        ).add(shift.work_date)
 
 
     # 来月の最終日を取得
@@ -1021,20 +1033,27 @@ def generate_shift(request):
                                     ):
                                         continue
                                     
-                                    if len( [n for n in working_days.get(staff.id, set())  if n>= week_start and n<= week_end])>=5:
-                                        continue
-                                    check_date = target_date-timedelta(
-                                        days=1
+                                    # 週5日までの勤務制限
+                                    weekly_work_days = sum(
+                                        1
+                                        for work_day in working_days.get(staff.id, set())
+                                        if week_start <= work_day <= week_end
                                     )
-                                    consecutive_days = 0
-                                    while check_date in working_days.get(staff.id, set()):
-                                        consecutive_days = consecutive_days+1
-                                        check_date = check_date-timedelta(
-                                            days=1
-                                        )
-                                    if consecutive_days>= 5:
+
+                                    if weekly_work_days >= 5:
                                         continue
 
+                                    # 月をまたいだ連続勤務も確認
+                                    consecutive_days = 0
+                                    check_date = target_date - timedelta(days=1)
+
+                                    while check_date in working_days.get(staff.id, set()):
+                                        consecutive_days += 1
+                                        check_date -= timedelta(days=1)
+
+                                    # 6連勤を禁止
+                                    if consecutive_days >= 5:
+                                        continue
                                     
 
                                     canworkers.append(staff)
