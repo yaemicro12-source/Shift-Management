@@ -1,0 +1,494 @@
+{% extends "shift_management/base.html" %}
+
+{% block title %}メッセージ{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-shell {
+        display: grid;
+        grid-template-columns: 330px minmax(0, 1fr);
+        max-width: 1160px;
+        height: 78vh;
+        min-height: 480px;
+        margin: 28px auto;
+        background: #fff;
+        border: 1px solid #dfe6ef;
+        border-radius: 18px;
+        overflow: hidden;
+        color: #293e59;
+        font-family: sans-serif;
+    }
+
+    .chat-shell * { box-sizing: border-box; }
+
+    .chat-sidebar {
+        overflow-y: auto;
+        border-right: 1px solid #e4eaf2;
+    }
+
+    .chat-sidebar h1 {
+        font-size: 21px;
+        margin: 24px 20px 8px;
+    }
+
+    .chat-hint {
+        font-size: 12px;
+        color: #7c899a;
+        margin: 0 20px 18px;
+        line-height: 1.7;
+    }
+
+    .chat-contact,
+    .chat-contact:visited {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        text-decoration: none;
+        color: #293e59;
+        border-bottom: 1px solid #f0f3f7;
+    }
+
+    .chat-contact:hover,
+    .chat-contact.chat-active { background: #edf4ff; }
+
+    .chat-avatar {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #e6eef9;
+        color: #4872a1;
+        font-weight: 700;
+    }
+
+    .chat-contact-content { flex: 1; min-width: 0; }
+
+    .chat-contact-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .chat-contact-top strong { font-size: 14px; }
+
+    .chat-contact-top time {
+        font-size: 10px;
+        color: #8491a3;
+        white-space: nowrap;
+    }
+
+    .chat-role,
+    .chat-preview,
+    .chat-pending {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+    }
+
+    .chat-role { color: #7b8ca2; }
+
+    .chat-preview {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #65758a;
+    }
+
+    .chat-pending { color: #b06718; }
+
+    .chat-badge {
+        padding: 3px 7px;
+        background: #3378c6;
+        border-radius: 20px;
+        color: #fff;
+        font-size: 11px;
+    }
+
+    .chat-main {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        min-width: 0;
+        background: #f4f7fc;
+    }
+
+    .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 20px;
+        background: #fff;
+        border-bottom: 1px solid #e4eaf2;
+    }
+
+    .chat-back {
+        font-size: 13px;
+        color: #3378c6;
+        text-decoration: none;
+    }
+
+    .chat-timeline {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 24px;
+    }
+
+    .chat-line {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .chat-line.chat-mine { align-items: flex-end; }
+
+    .chat-bubble {
+        max-width: 85%;
+        padding: 12px 16px;
+        background: #fff;
+        border: 1px solid #e3eaf3;
+        border-radius: 14px;
+        line-height: 1.8;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-mine .chat-bubble {
+        background: #e2efff;
+        border-color: #d3e5fc;
+    }
+
+    .chat-time {
+        margin-top: 5px;
+        color: #8290a3;
+        font-size: 10px;
+    }
+
+    .chat-request { width: 390px; max-width: 100%; }
+
+    .chat-request-heading {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: #8b591a;
+    }
+
+    .chat-request-heading span { font-size: 12px; }
+    .chat-request p { margin: 10px 0; }
+    .chat-request small { font-size: 12px; color: #7d8797; }
+
+    .chat-request-form label {
+        display: block;
+        margin-top: 12px;
+        font-size: 12px;
+    }
+
+    .chat-request-form textarea {
+        width: 100%;
+        margin-top: 5px;
+        padding: 8px;
+        border: 1px solid #d5dfeb;
+        border-radius: 7px;
+        resize: vertical;
+        font: inherit;
+    }
+
+    .chat-request-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .chat-request-actions button {
+        flex: 1;
+        padding: 9px 5px;
+        border: 1px solid #d5dfeb;
+        border-radius: 7px;
+        background: white;
+        color: #526174;
+        cursor: pointer;
+    }
+
+    .chat-request-actions button[value="accept"] {
+        background: #3378c6;
+        color: #fff;
+        border-color: #3378c6;
+    }
+
+    .chat-request-actions button[value="decline"] {
+        color: #b44545;
+    }
+
+    .chat-compose {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 10px;
+        padding: 16px;
+        background: #fff;
+        border-top: 1px solid #e4eaf2;
+        margin: 0;
+    }
+
+    .chat-compose-label {
+        grid-column: 1 / -1;
+        font-size: 12px;
+        color: #65758a;
+    }
+
+    .chat-compose textarea {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #d5dfeb;
+        border-radius: 10px;
+        resize: vertical;
+        font: inherit;
+        font-size: 14px;
+        max-height: 150px;
+    }
+
+    .chat-compose > button {
+        padding: 13px 20px;
+        border: none;
+        border-radius: 9px;
+        background: #3378c6;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .chat-error {
+        grid-column: 1 / -1;
+        color: #b44545;
+        margin: 0;
+        font-size: 13px;
+    }
+
+    .chat-empty {
+        padding: 18px;
+        color: #8491a3;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+
+    .chat-welcome {
+        display: grid;
+        place-items: center;
+        flex: 1;
+        padding: 24px;
+        color: #8491a3;
+        font-size: 14px;
+    }
+
+    @media (max-width: 720px) {
+        .chat-shell {
+            margin: 12px;
+            height: calc(100svh - 110px);
+            min-height: 350px;
+            grid-template-columns: 1fr;
+        }
+
+        .chat-main { display: none; }
+        .chat-selected .chat-sidebar { display: none; }
+        .chat-selected .chat-main { display: flex; }
+        .chat-sidebar { border-right: 0; }
+        .chat-timeline { padding: 16px; }
+        .chat-bubble { max-width: 94%; }
+        .chat-request { max-width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-shell {% if peer %}chat-selected{% endif %}">
+    <aside class="chat-sidebar">
+        <h1>メッセージ</h1>
+        <p class="chat-hint">
+            最新の内容は画面を開き直すと表示されます。
+        </p>
+
+        <nav aria-label="トーク一覧">
+            {% for contact in contacts %}
+            <a
+                class="chat-contact {% if peer.pk == contact.staff.pk %}chat-active{% endif %}"
+                href="{% url 'shift_management:conversation' contact.staff.pk %}"
+            >
+                <span class="chat-avatar">
+                    {{ contact.staff.name|slice:":1" }}
+                </span>
+
+                <span class="chat-contact-content">
+                    <span class="chat-contact-top">
+                        <strong>
+                            {{ contact.staff.name }}
+                            {{ contact.staff.firstname }}
+                        </strong>
+                        <time>
+                            {{ contact.latest|date:"n/j H:i" }}
+                        </time>
+                    </span>
+
+                    <span class="chat-role">
+                        {% if contact.staff.role == 2 %}
+                            管理者
+                        {% elif contact.staff.is_position_holder %}
+                            責任者
+                        {% else %}
+                            スタッフ
+                        {% endif %}
+                    </span>
+
+                    <span class="chat-preview">
+                        {{ contact.preview|truncatechars:42 }}
+                    </span>
+
+                    {% if contact.pending %}
+                    <span class="chat-pending">
+                        未回答の出勤依頼 {{ contact.pending }}件
+                    </span>
+                    {% endif %}
+                </span>
+
+                {% if contact.unread %}
+                <span class="chat-badge">
+                    {{ contact.unread }}
+                </span>
+                {% endif %}
+            </a>
+
+            {% empty %}
+            <p class="chat-empty">
+                会話できる相手がいません。
+                所属・管理エリアを確認してください。
+            </p>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    <section class="chat-main" aria-label="会話">
+        {% if peer %}
+        <header class="chat-header">
+            <a class="chat-back"
+               href="{% url 'shift_management:message' %}">
+                一覧へ
+            </a>
+            <strong>{{ peer.name }} {{ peer.firstname }}</strong>
+        </header>
+
+        <div class="chat-timeline" id="chat-timeline">
+            {% for item in timeline %}
+            <article class="chat-line {% if item.mine %}chat-mine{% endif %}">
+                <div class="chat-bubble {% if item.kind == 'request' %}chat-request{% endif %}">
+
+                    {% if item.kind == "request" %}
+                    <div class="chat-request-heading">
+                        <strong>出勤依頼</strong>
+                        <span>{{ item.status }}</span>
+                    </div>
+
+                    <p>{{ item.body|linebreaksbr }}</p>
+
+                    <small>
+                        回答期限
+                        {{ item.row.response_deadline|date:"n/j H:i" }}
+                    </small>
+
+                    {% if item.can_reply %}
+                    <form
+                        method="post"
+                        action="{% url 'shift_management:respond_request' item.row.pk %}"
+                        class="chat-request-form"
+                    >
+                        {% csrf_token %}
+
+                        <label>
+                            返信メモ（任意）
+                            <textarea name="note"
+                                      rows="2"
+                                      maxlength="2000"></textarea>
+                        </label>
+
+                        <div class="chat-request-actions">
+                            <button name="action" value="accept">
+                                承認
+                            </button>
+                            <button name="action" value="decline">
+                                拒否
+                            </button>
+                            <button name="action" value="hold">
+                                保留
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% else %}
+                        {{ item.body|linebreaksbr }}
+                    {% endif %}
+                </div>
+
+                <small class="chat-time">
+                    {{ item.at|date:"n/j H:i" }}
+                    {% if item.kind == "text" and item.mine and item.read %}
+                        ・既読
+                    {% endif %}
+                </small>
+            </article>
+
+            {% empty %}
+            <p class="chat-empty">
+                まだメッセージはありません。
+            </p>
+            {% endfor %}
+        </div>
+
+        <form
+            method="post"
+            action="{% url 'shift_management:conversation' peer.pk %}"
+            class="chat-compose"
+        >
+            {% csrf_token %}
+
+            {% if error %}
+            <p class="chat-error" role="alert">{{ error }}</p>
+            {% endif %}
+
+            <label class="chat-compose-label" for="chat-body">
+                メッセージ
+            </label>
+
+            <textarea
+                id="chat-body"
+                name="body"
+                rows="2"
+                maxlength="2000"
+                required
+                placeholder="メッセージを入力"
+            >{{ draft }}</textarea>
+
+            <button type="submit">送信</button>
+        </form>
+
+        {% else %}
+        <div class="chat-welcome">
+            相手を選んで会話を始めましょう。
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const chatTimeline = document.getElementById("chat-timeline");
+
+    if (chatTimeline) {
+        chatTimeline.scrollTop = chatTimeline.scrollHeight;
+    }
+</script>
+{% endblock %}

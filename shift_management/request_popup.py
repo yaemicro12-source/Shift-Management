@@ -148,11 +148,13 @@ def respond_request(request, request_id):
                     2 if action == "accept" else 3
                 )
                 row.responded_at = timezone.now()
+                row.response_note = request.POST.get("note", "").strip()[:2000]
 
                 row.save(
                     update_fields=[
                         "status",
                         "responded_at",
+                        "response_note",
                     ]
                 )
 
@@ -176,5 +178,18 @@ def respond_request(request, request_id):
         if staff.role == 2:
             return redirect("shift_management:manager_main")
         return redirect("shift_management:staff_main")
+
+    from .messaging import contact_staff
+
+    if (
+        row.requested_by_id
+        and contact_staff(staff).filter(
+            pk=row.requested_by_id
+        ).exists()
+    ):
+        return redirect(
+            "shift_management:conversation",
+            staff_id=row.requested_by_id,
+        )
 
     return redirect("shift_management:message")

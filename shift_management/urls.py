@@ -1,4 +1,4 @@
-from .staff_requests import shortage_request, request_messages
+from .staff_requests import shortage_request
 """shift_managementのURLパターンの定義"""
 
 from django.urls import path
@@ -6,6 +6,7 @@ from django.urls import path
 from . import views
 from .shift_controls import shift_management_page
 from .request_popup import respond_request
+from .messaging import message_page
 
 app_name = 'shift_management'
 
@@ -22,11 +23,6 @@ urlpatterns = [
         'edit_staff/<int:staff_id>/',
         views.edit_staff,
         name='edit_staff'
-    ),
-    path(
-        "message/",
-        request_messages,
-        name="message",
     ),
     path(
         "shortage/<int:shortage_id>/request/",
@@ -73,5 +69,15 @@ urlpatterns = [
     "requests/<int:request_id>/respond/",
     respond_request,
     name="respond_request",
-),
+    ),
+    path(
+    "message/",
+    message_page,
+    name="message",
+    ),
+    path(
+        "message/<int:staff_id>/",
+        message_page,
+        name="conversation",
+    ),
 ]

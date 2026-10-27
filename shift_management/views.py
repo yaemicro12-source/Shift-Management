@@ -296,90 +296,269 @@ def staff_main(request):
         context,
     )
 
+#シフト提出
 @login_required(login_url="shift_management:staff_login")
 def shift_submission(request):
-    """シフト提出"""
-    availability_list = []
-    today = date.today()
+    import calendar
+    from datetime import date, time, timedelta
 
-    if today.month == 12:
-        year = today.year + 1
-        month = 1
-    else:
-        year = today.year
-        month = today.month + 1
-    day = today.day
-    last_day = calendar.monthrange(year,month)[1] 
-    weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+    from django.db import transaction
+    from django.utils import timezone
+    from jpholiday import JPHoliday
+
+    today = timezone.localdate()
+    first = (
+        today.replace(day=1) + timedelta(days=32)
+    ).replace(day=1)
+    year, month = first.year, first.month
+
+    staff = get_object_or_404(
+        StaffProfile,
+        user=request.user,
+        is_active=True,
+    )
+    holidays = JPHoliday()
+
+    latest = ShiftSubmission.objects.filter(
+        staff=staff,
+        year=year,
+        month=month,
+        is_latest=True,
+        status__in=[2, 3],
+    ).order_by("-pk").first()
+
+    saved = {
+        row.target_date.day: row
+        for row in ShiftPreference.objects.filter(
+            submission=latest
+        )
+    } if latest else {}
+
+    def clock(value):
+        return value.strftime("%H:%M") if value is not None else ""
+
     days = []
-    staff = StaffProfile.objects.get(user=request.user)
-    submission_type = staff.get_submission_type_display()
-    
+    errors = []
 
-    for day in range(1, last_day + 1):
-        target_date = date(year, month, day)
-        weekday_name = weekdays[target_date.weekday()]
+    for number in range(
+        1, calendar.monthrange(year, month)[1] + 1
+    ):
+        day = date(year, month, number)
+        old = saved.get(number)
 
-        days.append({
-            "day": day,
-            "weekday": weekday_name,
-        })
+        checked = (
+            old.is_available
+            if staff.submission_type == 1
+            else not old.is_available
+        ) if old else False
 
-    context = {
-        "day": day,
-        "month":month, 
-        "days":days,
-        "year":year,
-        "submission_type":submission_type
-    }
-       
-    if request.method == "POST":
-        for day in range(1,last_day+1):
-            if f"day_{day}" in request.POST:
-                availability_list.append(True)
-            else:
-                availability_list.append(False)
+        item = {
+            "day": number,
+            "weekday": "月火水木金土日"[day.weekday()],
+            "weekday_code": day.weekday(),
+            "is_holiday": holidays.is_holiday(day),
+            "checked": checked,
+            "start": clock(old.available_start_time) if old else "",
+            "end": clock(old.available_end_time) if old else "",
+            "note": old.note if old else "",
+        }
 
-        if staff.submission_type == 2:
-            availability_list= [not x for x in availability_list]
-
-        with transaction.atomic():
-            ShiftSubmission.objects.filter(staff=staff,year=year,month=month).update(is_latest=False)
-            submission_record = ShiftSubmission.objects.create(
-            staff = staff,
-            year = year,
-            month = month,     
-            submission_type = staff.submission_type,
-            status = 2,
-            submitted_at = timezone.now()
+        if request.method == "POST":
+            item.update(
+                checked=f"day_{number}" in request.POST,
+                start=request.POST.get(
+                    f"start_{number}", ""
+                ).strip(),
+                end=request.POST.get(
+                    f"end_{number}", ""
+                ).strip(),
+                note=request.POST.get(
+                    f"note_{number}", ""
+                ).strip(),
             )
 
-            for day, is_available in enumerate(availability_list, start=1):
-                ShiftPreference.objects.create(
-                    target_date=date(year, month, day),
-                    is_available=is_available,
-                    submission=submission_record,
-                    available_start_time=request.POST.get(f"start_{day}") or None,
-                    available_end_time=request.POST.get(f"end_{day}") or None,
-                    note=request.POST.get(f"note_{day}")
+            available = (
+                item["checked"]
+                if staff.submission_type == 1
+                else not item["checked"]
+            )
+            item["available"] = available
+            item["start_value"] = None
+            item["end_value"] = None
+
+            if available:
+                try:
+                    start = time.fromisoformat(item["start"])
+                    end = time.fromisoformat(item["end"])
+
+                    start_minutes = start.hour * 60 + start.minute
+                    end_minutes = (
+                        end.hour * 60 + end.minute
+                    ) or 1440
+
+                    if (
+                        start.tzinfo
+                        or end.tzinfo
+                        or start.second
+                        or start.microsecond
+                        or end.second
+                        or end.microsecond
+                        or end_minutes <= start_minutes
+                    ):
+                        raise ValueError
+
+                    item["start_value"] = start
+                    item["end_value"] = end
+
+                except ValueError:
+                    errors.append(
+                        f"{number}日：出勤可能時間を正しく"
+                        "入力してください。終了の00:00は"
+                        "24:00として扱います。"
+                    )
+
+        days.append(item)
+
+    if request.method == "POST" and not errors:
+        with transaction.atomic():
+            # 同じスタッフによる同時提出を順番に処理
+            StaffProfile.objects.select_for_update().get(
+                pk=staff.pk
+            )
+
+            latest = ShiftSubmission.objects.filter(
+                staff=staff,
+                year=year,
+                month=month,
+                is_latest=True,
+                status__in=[2, 3],
+            ).order_by("-pk").first()
+
+            values = [
+                (
+                    date(year, month, row["day"]),
+                    row["available"],
+                    row["start_value"],
+                    row["end_value"],
+                    row["note"],
                 )
-        
+                for row in days
+            ]
+
+            same = (
+                latest is not None
+                and latest.submission_type == staff.submission_type
+                and list(
+                    ShiftPreference.objects.filter(
+                        submission=latest
+                    ).order_by(
+                        "target_date", "pk"
+                    ).values_list(
+                        "target_date",
+                        "is_available",
+                        "available_start_time",
+                        "available_end_time",
+                        "note",
+                    )
+                ) == values
+            )
+
+            if not same:
+                # 過去の提出は削除せず履歴として残す
+                ShiftSubmission.objects.filter(
+                    staff=staff,
+                    year=year,
+                    month=month,
+                ).update(is_latest=False)
+
+                submission = ShiftSubmission.objects.create(
+                    staff=staff,
+                    year=year,
+                    month=month,
+                    submission_type=staff.submission_type,
+                    status=2,
+                    is_latest=True,
+                    submitted_at=timezone.now(),
+                )
+
+                ShiftPreference.objects.bulk_create([
+                    ShiftPreference(
+                        submission=submission,
+                        target_date=value[0],
+                        is_available=value[1],
+                        available_start_time=value[2],
+                        available_end_time=value[3],
+                        note=value[4],
+                    )
+                    for value in values
+                ])
+
+        messages.success(
+            request,
+            "同じ内容がすでに提出されています。"
+            if same else "希望シフトを提出しました。",
+        )
+
+        available_count = sum(
+            row["available"] for row in days
+        )
+
+        if (
+            staff.show_submission_warning
+            and available_count < staff.minimum_available_days
+        ):
+            messages.warning(
+                request,
+                "提出は保存しましたが、出勤可能日数が"
+                f"最低提出日数の{staff.minimum_available_days}日"
+                "を下回っています。",
+            )
+
+        # 再読み込みによるPOST再送信を防ぐ
+        return redirect("shift_management:sift_submission")
+
+    previous_month = first - timedelta(days=1)
+
+    previous = ShiftSubmission.objects.filter(
+        staff=staff,
+        year=previous_month.year,
+        month=previous_month.month,
+        is_latest=True,
+        status__in=[2, 3],
+    ).order_by("-pk").first()
+
+    previous_settings = {}
+
+    if previous:
+        for row in ShiftPreference.objects.filter(
+            submission=previous
+        ).order_by("target_date", "pk"):
+            # 祝日は通常の曜日に混ぜない
+            key = (
+                "holiday"
+                if holidays.is_holiday(row.target_date)
+                else str(row.target_date.weekday())
+            )
+
+            previous_settings[key] = {
+                "available": row.is_available,
+                "start": clock(row.available_start_time),
+                "end": clock(row.available_end_time),
+            }
 
     return render(
         request,
-        'shift_management/shift_submission.html',
-        context
-    )
-
-
-@manager_required
-def manager_main(request):
-    context = get_main_shift_context(request)
-
-    return render(
-        request,
-        "shift_management/manager_main.html",
-        context,
+        "shift_management/shift_submission.html",
+        {
+            "year": year,
+            "month": month,
+            "days": days,
+            "errors": errors,
+            "submission_type": staff.get_submission_type_display(),
+            "submission_type_code": staff.submission_type,
+            "previous_settings": previous_settings,
+            "has_submission": latest is not None,
+        },
     )
 
 @manager_required
@@ -2117,4 +2296,13 @@ def csrf_failure(request, reason=""):
         "shift_management/csrf_failure.html",
         {"return_url": return_url},
         status=403,
+    )
+@manager_required
+def manager_main(request):
+    context = get_main_shift_context(request)
+
+    return render(
+        request,
+        "shift_management/manager_main.html",
+        context,
     )

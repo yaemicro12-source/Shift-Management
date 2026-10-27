@@ -111,6 +111,20 @@
         .common-menu form {
             margin: 0;
         }
+        .menu-message-count {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 20px;
+        background: #3378c6;
+        color: white;
+        font-size: 12px;
+    }
+
+    .menu-request-count {
+        margin-left: 6px;
+        color: #b06718;
+        font-size: 12px;
+    }
     </style>
 </head>
 
@@ -166,9 +180,24 @@
             {% endif %}
 
             <!-- メッセージ -->
-            <a href="{% url 'shift_management:message' %}" class="menu-item">
-                メッセージ
-            </a>
+            <a href="{% url 'shift_management:message' %}"
+                class="menu-item">
+                    <span>メッセージ</span>
+
+                    <span>
+                        {% if unread_message_count %}
+                        <span class="menu-message-count">
+                            {{ unread_message_count }}
+                        </span>
+                        {% endif %}
+
+                        {% if pending_request_count %}
+                        <span class="menu-request-count">
+                            未回答 {{ pending_request_count }}
+                        </span>
+                        {% endif %}
+                    </span>
+                </a>
 
             <!-- ログアウト -->
             <form action="{% url 'shift_management:logout' %}" method="post">
