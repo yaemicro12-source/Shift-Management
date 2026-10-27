@@ -497,7 +497,10 @@
         if (!departureTime || !startInput.value || !endInput.value) return;
 
         const departureMinutes = toMinutes(departureTime);
-        const endMinutes = toMinutes(endInput.value);
+        const enteredEndMinutes = toMinutes(endInput.value);
+        const endMinutes = enteredEndMinutes === 0
+            ? 24 * 60
+            : enteredEndMinutes;
 
         if (endMinutes <= departureMinutes) return;
 

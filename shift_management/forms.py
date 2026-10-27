@@ -35,9 +35,19 @@ class ShiftAssignmentForm(forms.ModelForm):
             cleaned_data = super().clean()
             start_time = cleaned_data.get("start_time")
             end_time = cleaned_data.get("end_time")
-            if start_time!=None and end_time!=None:
-                if start_time>=end_time:
-                     self.add_error("start_time","開始時間が不正です")
+
+            if start_time is not None and end_time is not None:
+                end_is_midnight = (
+                    end_time.hour == 0 and end_time.minute == 0
+                )
+
+                if start_time == end_time or (
+                    not end_is_midnight and start_time > end_time
+                ):
+                    self.add_error(
+                        "start_time", "開始時間が不正です"
+                    )
+
             return cleaned_data
         
         def __init__(self, *args, **kwargs):
