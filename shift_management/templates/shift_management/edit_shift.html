@@ -19,16 +19,7 @@
     <div class="edit-filters">
         <div class="edit-field">
             <label for="area-filter">エリア</label>
-                <select id="area-filter">
-                    {% for area in areas %}
-                        <option
-                            value="{{ area.id }}"
-                            {% if selected_area_id == area.id|stringformat:"s" %}selected{% endif %}
-                        >
-                            {{ area.name }}
-                        </option>
-                    {% endfor %}
-                </select>
+            <select id="area-filter">
                 <option value="">すべて</option>
             </select>
         </div>
@@ -330,14 +321,8 @@
 
             </div>
 
-                        <form method="post" id="shift-edit-form">
+            <form method="post" id="shift-edit-form">
                 {% csrf_token %}
-
-                <input
-                    type="hidden"
-                    name="request_memo"
-                    id="request-memo-hidden"
-                >
 
                 {{ form.work_date }}
                 {{ form.shift_time_slot }}
@@ -391,7 +376,6 @@
                             data-start="{{ timeslot.start_time|date:'H:i' }}"
                             data-end="{{ timeslot.end_time|date:'H:i' }}"
                             data-slot-id="{{ timeslot.id }}"
-                            style="display: none;"
                         >
                             {{ timeslot.name }}
                         </button>
@@ -452,34 +436,7 @@
                 </button>
                 {% endif %}
 
-</form>
-
-            <dialog id="shift-request-dialog" class="shift-request-dialog">
-                <h2>シフト登録申請</h2>
-
-                <p id="shift-request-message"></p>
-
-                <label for="shift-request-memo">
-                    メモ（任意）
-                </label>
-
-                <textarea
-                    id="shift-request-memo"
-                    rows="4"
-                    placeholder="ヘルプが必要な理由などを入力"
-                ></textarea>
-
-                <div class="shift-request-actions">
-                    <button type="button" id="cancel-shift-request">
-                        キャンセル
-                    </button>
-
-                    <button type="button" id="confirm-shift-request">
-                        この内容で申請
-                    </button>
-                </div>
-            </dialog>
-
+            </form>
         </section>
 
     </div>
@@ -529,131 +486,9 @@
             event.preventDefault();
         }
     });
-
-    // エリア切り替え
-    const areaFilter = document.getElementById("area-filter");
-
-    areaFilter.addEventListener("change", function () {
-        const url = new URL(window.location.href);
-
-        url.searchParams.set("area", areaFilter.value);
-        url.searchParams.delete("store");
-        url.searchParams.delete("shift_id");
-
-        window.location.href = url.toString();
-    
-            });
-
-    // ==========================================
-    // 他エリアへのシフト登録申請
-    // ==========================================
-
-    const managedAreaIds = {{ managed_area_ids|default:"[]"|safe }}.map(Number);
-    const requestDialog = document.getElementById(
-        "shift-request-dialog"
-    );
-
-    const requestMessage = document.getElementById(
-        "shift-request-message"
-    );
-
-    const requestMemo = document.getElementById(
-        "shift-request-memo"
-    );
-
-    const requestMemoHidden = document.getElementById(
-        "request-memo-hidden"
-    );
-
-    const storeSelect = shiftForm.querySelector('[name="store"]');
-    const slotSelect = shiftForm.querySelector('[name="shift_time_slot"]');
-    const dateSelect = shiftForm.querySelector('[name="work_date"]');
-
-    const storeAreas = {
-        {% for store in stores %}
-        "{{ store.id }}": {{ store.area_id }},
-        {% endfor %}
-    };
-
-    shiftForm.addEventListener("submit", function (event) {
-        if (event.submitter?.value !== "save") {
-            return;
-        }
-
-        const storeId = storeSelect.value;
-        const areaId = storeAreas[storeId];
-
-        if (!areaId) {
-            event.preventDefault();
-            alert("店舗のエリアを確認できません。");
-            return;
-        }
-
-        if (managedAreaIds.length === 0) {
-            event.preventDefault();
-            alert("管理エリアを取得できません。");
-            return;
-        }
-
-        if (managedAreaIds.includes(Number(areaId))) {
-            return;
-        }
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const dateValue = dateSelect.value;
-        const slotId = slotSelect.value;
-
-        if (!dateValue || !slotId) {
-            alert("勤務日とシフト枠を選択してください。");
-            return;
-        }
-
-        const [year, month, day] = dateValue.split("-").map(Number);
-        const weekday = ["日", "月", "火", "水", "木", "金", "土"][
-            new Date(year, month - 1, day).getDay()
-        ];
-
-        const slotButton = document.querySelector(
-            `.timeslot-button[data-slot-id="${slotId}"]`
-        );
-
-        const slotName = slotButton
-            ? slotButton.textContent.trim()
-            : "選択した";
-
-        requestMessage.textContent =
-            `${month}月${day}日（${weekday}）${slotName}枠の` +
-            "シフト登録を申請します。\n\n" +
-            "この内容で申請します。よろしいですか？";
-
-        requestDialog.showModal();
-    }, true);
-
-    document.getElementById(
-        "cancel-shift-request"
-    ).addEventListener("click", function () {
-        requestDialog.close();
-    });
-
-    document.getElementById(
-        "confirm-shift-request"
-    ).addEventListener("click", function () {
-        requestMemoHidden.value = requestMemo.value;
-
-        const button = document.createElement("button");
-        button.type = "submit";
-        button.name = "action";
-        button.value = "request";
-        button.hidden = true;
-
-        shiftForm.appendChild(button);
-        shiftForm.requestSubmit(button);
-    });
-
     // 店舗切り替え
     const storeFilter = document.getElementById("store-filter");
+
     storeFilter.addEventListener("change", function () {
         const url = new URL(window.location.href);
 
@@ -809,8 +644,7 @@
 
     const slotButtons =
         document.querySelectorAll(".timeslot-button");
-
-    // 選択店舗に対応するシフト枠だけ表示
+        // 選択店舗のシフト枠だけを表示
     const storeInput = document.querySelector(
         '#shift-edit-form [name="store"]'
     );
@@ -826,10 +660,9 @@
                     : "none";
         });
 
-        // 別店舗のシフト枠が選択されたままになるのを防ぐ
+        // 店舗変更時に、以前のシフト枠選択を解除
         const selectedButton = Array.from(slotButtons).find(
-            button =>
-                button.dataset.slotId === slotInput.value
+            button => button.dataset.slotId === slotInput.value
         );
 
         if (
@@ -845,7 +678,6 @@
     }
 
     storeInput.addEventListener("change", updateTimeslotButtons);
-
     updateTimeslotButtons();
 
     function updateActiveSlot() {
