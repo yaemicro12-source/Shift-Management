@@ -172,4 +172,9 @@ def respond_request(request, request_id):
             " ".join(exc.messages),
         )
 
+    if request.POST.get("action") == "hold":
+        if staff.role == 2:
+            return redirect("shift_management:manager_main")
+        return redirect("shift_management:staff_main")
+
     return redirect("shift_management:message")

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画面を開き直してください｜シフト管理</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100svh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: #f3f6fc;
+            color: #293e59;
+            font-family: sans-serif;
+        }
+
+        .notice-card {
+            width: min(100%, 460px);
+            padding: 36px 28px;
+            border: 1px solid #dfe7f2;
+            border-radius: 20px;
+            background: #fff;
+            text-align: center;
+            box-shadow: 0 12px 36px #293e5908;
+        }
+
+        .notice-icon {
+            display: grid;
+            place-items: center;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 20px;
+            border-radius: 16px;
+            background: #eaf2ff;
+            color: #3378c6;
+            font-size: 28px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 21px;
+            line-height: 1.5;
+        }
+
+        p {
+            margin: 12px 0;
+            color: #65758a;
+            font-size: 14px;
+            line-height: 1.9;
+        }
+
+        .notice-result {
+            color: #293e59;
+            font-weight: bold;
+        }
+
+        .notice-button {
+            display: block;
+            margin-top: 24px;
+            padding: 14px;
+            border-radius: 10px;
+            background: #3378c6;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .notice-button:hover {
+            background: #2867ad;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="notice-card">
+        <div class="notice-icon" aria-hidden="true">↻</div>
+
+        <h1>画面を開き直してください</h1>
+
+        <p>
+            アカウントの切り替えなどにより、<br>
+            画面の情報が古くなった可能性があります。
+        </p>
+
+        <p class="notice-result">
+            今回の操作は保存されていません。
+        </p>
+
+        <p>
+            ホームへ戻り、現在のアカウントを確認してから<br>
+            もう一度操作してください。
+        </p>
+
+        <a href="{{ return_url }}" class="notice-button">
+            {% if user.is_authenticated %}
+                ホームへ戻る
+            {% else %}
+                ログイン画面へ
+            {% endif %}
+        </a>
+    </main>
+</body>
+</html>

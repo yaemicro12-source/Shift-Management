@@ -133,3 +133,4 @@ MAILERS = {
 CSRF_TRUSTED_ORIGINS = [
     "https://localhost:8000",
 ]
+CSRF_FAILURE_VIEW = "shift_management.views.csrf_failure"

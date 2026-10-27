@@ -5,6 +5,7 @@ from django.urls import path
 
 from . import views
 from .shift_controls import shift_management_page
+from .request_popup import respond_request
 
 app_name = 'shift_management'
 
@@ -68,4 +69,9 @@ urlpatterns = [
         shift_management_page,
         name="shift_management",
     ),
+    path(
+    "requests/<int:request_id>/respond/",
+    respond_request,
+    name="respond_request",
+),
 ]

@@ -1033,6 +1033,7 @@ def staff_login(request):
                 staff = user.staffprofile
                 if staff.role == 1:
                     login(request,user)
+                    request.session["deferred_request_ids"] = []
                     return redirect("shift_management:staff_main")
                 else:
                     messages.error(request,"管理者ログインからログインしてください")
@@ -1072,6 +1073,7 @@ def manager_login(request):
 
                     if has_permission:
                         login(request,user)
+                        request.session["deferred_request_ids"] = []
                         return redirect("shift_management:manager_main")
                     else:
                         messages.error(request,"エリアコードが一致しません")
@@ -1164,6 +1166,10 @@ def edit_staff(request, staff_id):
 #ログアウト機能
 @require_POST
 def logout_view(request):
+    # ログイン画面へ前の操作の通知を持ち越さない
+    for _ in messages.get_messages(request):
+        pass
+
     logout(request)
     return redirect("shift_management:staff_login")
 
@@ -2092,4 +2098,23 @@ def evaluation_detail(request, area_id, staff_id):
             "deadline_day": setting.deadline_day,
             "deadline_passed": today.day > setting.deadline_day,
         }
+    )
+def csrf_failure(request, reason=""):
+    if request.user.is_authenticated:
+        staff = getattr(request.user, "staffprofile", None)
+
+        if staff and staff.role == 2:
+            return_url = reverse("shift_management:manager_main")
+        elif staff and staff.role == 1:
+            return_url = reverse("shift_management:staff_main")
+        else:
+            return_url = reverse("shift_management:staff_login")
+    else:
+        return_url = reverse("shift_management:staff_login")
+
+    return render(
+        request,
+        "shift_management/csrf_failure.html",
+        {"return_url": return_url},
+        status=403,
     )
