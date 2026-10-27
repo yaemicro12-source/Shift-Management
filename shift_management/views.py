@@ -20,6 +20,7 @@ from django.db import transaction
 from django.db.models import Q
 from .models import EvaluationItem
 from .models import ShiftSchedule
+from datetime import time
 
 def get_evaluation_areas(evaluator, year, month):
     """
@@ -892,7 +893,9 @@ def generate_shift(request):
     submissions = ShiftSubmission.objects.filter(
         is_latest=True,
         month=month,
-        year=year
+        year=year,
+        staff__is_active=True,
+        staff__is_trainee=False,
     )
 
     for submission in submissions:
@@ -950,7 +953,8 @@ def generate_shift(request):
 
         for rule in rules:
             canworkers = []  # 条件に一致したスタッフ
-
+            worker_end_times = {}
+            worker_minutes = {}
             # シフト枠の勤務時間を分単位で計算
 
             end_datetime = datetime.combine(
@@ -968,9 +972,43 @@ def generate_shift(request):
 
             # その日に勤務できるスタッフを確認
             for candidate in candidates:
-
-                # 希望日とシフトを組む日付が一致するか
                 if candidate.target_date == target_date:
+                    staff = candidate.submission.staff
+
+                    # 未設定ならシフト枠の終了まで勤務可能
+                    actual_end_time = rule.shift_time_slot.end_time
+                    departure_time = staff.last_train_departure_time
+
+                    if departure_time is not None:
+                        actual_end_time = min(
+                            actual_end_time,
+                            departure_time,
+                        )
+
+                    actual_end_datetime = datetime.combine(
+                        target_date,
+                        actual_end_time,
+                    )
+
+                    # 15分を超える早退は採用しない
+                    if (
+                        end_datetime - actual_end_datetime
+                        > timedelta(minutes=15)
+                    ):
+                        continue
+
+                    if actual_end_datetime <= start_datetime:
+                        continue
+
+                    # 上限判定も実際の勤務時間で計算
+                    work_minutes = int(
+                        (
+                            actual_end_datetime - start_datetime
+                        ).total_seconds() / 60
+                    )
+
+                    worker_end_times[staff.id] = actual_end_time
+                    worker_minutes[staff.id] = work_minutes
 
                     # 希望開始時間がシフト開始時間以前か
                     if (
@@ -979,11 +1017,10 @@ def generate_shift(request):
                         and candidate.available_start_time
                         <= rule.shift_time_slot.start_time
                     ):
-
-                        # 希望終了時間がシフト終了時間以降か
+                        # 希望終了時間内に退勤できるか
                         if (
                             candidate.available_end_time
-                            >= rule.shift_time_slot.end_time
+                            >= actual_end_time
                         ):
 
                             # 対象店舗に所属しているか
@@ -1059,10 +1096,33 @@ def generate_shift(request):
                                     canworkers.append(staff)
 
                                     
-            # 必要人数を上限としてスタッフを選択
-            selected_workers = canworkers[:rule.required_count]
+            # 枠の終了まで勤務できるスタッフを先に選ぶ
+            full_workers = [
+                staff
+                for staff in canworkers
+                if worker_end_times[staff.id]
+                == rule.shift_time_slot.end_time
+            ]
 
+            early_workers = [
+                staff
+                for staff in canworkers
+                if worker_end_times[staff.id]
+                < rule.shift_time_slot.end_time
+            ]
+
+            selected_workers = full_workers[:rule.required_count]
+
+            # 最低1人が枠の終了まで残る場合のみ早退者を追加
+            if selected_workers:
+                remaining_count = (
+                    rule.required_count - len(selected_workers)
+                )
+                selected_workers.extend(
+                    early_workers[:remaining_count]
+                )
             for worker in selected_workers:
+                work_minutes = worker_minutes[worker.id]
                 assigned_staff.add(worker)
                 working_days.setdefault(worker.id, set()).add(target_date)
                 # 選ばれたスタッフの勤務時間を加算
@@ -1079,11 +1139,13 @@ def generate_shift(request):
                     + work_minutes
                 )
                 ShiftAssignment.objects.create(
-                    staff= worker,
-                    store = rule.store,
-                    work_date = target_date,
-                    shift_time_slot = rule.shift_time_slot,
-                    status = 1
+                    staff=worker,
+                    store=rule.store,
+                    work_date=target_date,
+                    shift_time_slot=rule.shift_time_slot,
+                    start_time=rule.shift_time_slot.start_time,
+                    end_time=worker_end_times[worker.id],
+                    status=1,
                 )
 
             # 人数不足を計算
