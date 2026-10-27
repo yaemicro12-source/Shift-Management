@@ -166,10 +166,9 @@
             {% endif %}
 
             <!-- メッセージ -->
-            <button type="button" class="menu-item" disabled>
+            <a href="{% url 'shift_management:message' %}" class="menu-item">
                 メッセージ
-                <small>準備中</small>
-            </button>
+            </a>
 
             <!-- ログアウト -->
             <form action="{% url 'shift_management:logout' %}" method="post">

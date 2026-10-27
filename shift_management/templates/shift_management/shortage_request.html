@@ -1,0 +1,124 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}不足枠への出勤依頼{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+
+    <section class="staff-card workflow-card">
+        <h1>不足枠への出勤依頼</h1>
+
+        <p>
+            {{ shortage.target_date|date:"Y年n月j日" }} ／
+            {{ shortage.store.name }} ／
+            {{ shortage.shift_time_slot.name }}
+        </p>
+
+        <p>
+            配置{{ shortage.assigned_count }}人 ／
+            必要{{ shortage.required_count }}人
+        </p>
+
+        <p>
+            希望休・希望時間外のスタッフにも出勤可能か確認します。
+            送信だけでは勤務シフトは変わりません。
+        </p>
+
+        <form method="post"
+              onsubmit="return confirm('選択したスタッフに出勤依頼を送信しますか？');">
+            {% csrf_token %}
+
+            <div class="shortage-table-scroll">
+                <table class="shortage-table">
+                    <thead>
+                        <tr>
+                            <th>選択</th>
+                            <th>スタッフ</th>
+                            <th>勤務希望</th>
+                            <th>依頼する退勤時刻</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in candidates %}
+                        <tr>
+                            <td>
+                                {% if row.pending %}
+                                送信済み
+                                {% else %}
+                                <input type="checkbox"
+                                       name="staff_ids"
+                                       value="{{ row.staff.id }}"
+                                       aria-label="{{ row.staff.name }}を選択">
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ row.staff.name }}
+                                {{ row.staff.firstname }}
+                            </td>
+                            <td>{{ row.wish }}</td>
+                            <td>{{ row.end }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                条件を満たすスタッフはいません。
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <label class="request-note">
+                補足メッセージ
+                <textarea name="message"
+                          rows="3"
+                          maxlength="2000"
+                          placeholder="任意"></textarea>
+            </label>
+
+            <button type="submit" class="workflow-button">
+                選択したスタッフに一括送信
+            </button>
+        </form>
+    </section>
+
+    <section class="staff-card workflow-card">
+        <h2>今回の対象外</h2>
+
+        <div class="shortage-table-scroll">
+            <table class="shortage-table">
+                <thead>
+                    <tr>
+                        <th>スタッフ</th>
+                        <th>理由</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in excluded %}
+                    <tr>
+                        <td>
+                            {{ row.staff.name }}
+                            {{ row.staff.firstname }}
+                        </td>
+                        <td>{{ row.reason }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2">
+                            対象外のスタッフはいません。
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

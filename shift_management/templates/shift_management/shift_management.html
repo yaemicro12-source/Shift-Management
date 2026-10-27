@@ -120,20 +120,64 @@
     </section>
 
     <section class="staff-card workflow-card">
-        <h2>不足している日・シフト枠</h2>
+    <h2>不足している日・シフト枠</h2>
 
-        {% for row in shortages %}
-        <p>
-            <a href="{% url 'shift_management:edit_shift' %}?date={{ row.target_date|date:'Y-m-d' }}&store={{ row.store_id }}">
-                {{ row.target_date|date:"n/j" }}
-                {{ row.store.name }}・{{ row.shift_time_slot.name }}
-                — {{ row.missing_count }}人不足
-            </a>
-        </p>
-        {% empty %}
-        <p>不足記録はありません。未作成の場合は生成後に表示します。</p>
-        {% endfor %}
-    </section>
+    <div class="shortage-table-scroll">
+        <table class="shortage-table">
+            <thead>
+                <tr>
+                    <th>日付</th>
+                    <th>店舗</th>
+                    <th>シフト枠</th>
+                    <th>配置／必要</th>
+                    <th>不足</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in shortages %}
+                <tr>
+                    <td>{{ row.target_date|date:"n/j" }}</td>
+                    <td>{{ row.store.name }}</td>
+                    <td>{{ row.shift_time_slot.name }}</td>
+                    <td>
+                        {{ row.assigned_count }}／{{ row.required_count }}人
+                    </td>
+                    <td>
+                        <span class="shortage-count">
+                            {{ row.missing_count }}人
+                        </span>
+                    </td>
+                    <td>
+                        <div class="shortage-row-actions">
+                            <a class="shortage-action"
+                               href="{% url 'shift_management:edit_shift' %}?date={{ row.target_date|date:'Y-m-d' }}&store={{ row.store_id }}">
+                                配置を見る
+                            </a>
+
+                            {% if state == 2 %}
+                            <a class="shortage-action primary"
+                               href="{% url 'shift_management:shortage_request' row.id %}">
+                                出勤依頼
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        不足記録はありません。
+                        未作成の場合は生成後に表示します。
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
     {% else %}
     <p>担当店舗がありません。</p>
     {% endif %}

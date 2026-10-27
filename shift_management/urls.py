@@ -1,3 +1,4 @@
+from .staff_requests import shortage_request, request_messages
 """shift_managementのURLパターンの定義"""
 
 from django.urls import path
@@ -21,7 +22,16 @@ urlpatterns = [
         views.edit_staff,
         name='edit_staff'
     ),
-    path('message/',views.message,name='message'),
+    path(
+        "message/",
+        request_messages,
+        name="message",
+    ),
+    path(
+        "shortage/<int:shortage_id>/request/",
+        shortage_request,
+        name="shortage_request",
+    ),
     path('logout/',views.logout_view,name='logout'),
     path(
         'evaluations/',

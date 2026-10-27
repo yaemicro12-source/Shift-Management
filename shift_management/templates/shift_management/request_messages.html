@@ -1,0 +1,106 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}出勤依頼メッセージ{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <h1>出勤依頼メッセージ</h1>
+
+    <h2>受信した依頼</h2>
+
+    {% for row in received %}
+    <section class="staff-card workflow-card">
+        <h3>
+            {{ row.shortage.target_date|date:"n/j" }}
+            {{ row.shortage.store.name }}
+        </h3>
+
+        <p>
+            送信者：{{ row.requested_by.name }} ／
+            {{ row.get_status_display }}
+        </p>
+
+        <p>{{ row.message|linebreaksbr }}</p>
+
+        <p>
+            回答期限：
+            {{ row.response_deadline|date:"n/j H:i" }}
+        </p>
+
+        {% if row.can_reply %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden"
+                   name="request_id"
+                   value="{{ row.id }}">
+
+            <label class="request-note">
+                返信メモ
+                <textarea name="note"
+                          rows="2"
+                          maxlength="2000"></textarea>
+            </label>
+
+            <div class="workflow-actions">
+                <button class="workflow-button"
+                        name="action"
+                        value="accept">
+                    出勤可能と回答
+                </button>
+
+                <button class="workflow-button secondary"
+                        name="action"
+                        value="decline">
+                    辞退する
+                </button>
+            </div>
+        </form>
+
+        {% elif row.status == 1 %}
+        <p>回答期限を過ぎています。</p>
+        {% endif %}
+    </section>
+
+    {% empty %}
+    <p>受信した依頼はありません。</p>
+    {% endfor %}
+
+    {% if sent %}
+    <h2>送信した依頼</h2>
+
+    <div class="shortage-table-scroll">
+        <table class="shortage-table">
+            <thead>
+                <tr>
+                    <th>日付・店舗</th>
+                    <th>スタッフ</th>
+                    <th>回答</th>
+                    <th>返信メモ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in sent %}
+                <tr>
+                    <td>
+                        {{ row.shortage.target_date|date:"n/j" }}
+                        {{ row.shortage.store.name }}
+                    </td>
+                    <td>
+                        {{ row.recipient.name }}
+                        {{ row.recipient.firstname }}
+                    </td>
+                    <td>{{ row.get_status_display }}</td>
+                    <td>{{ row.response_note|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

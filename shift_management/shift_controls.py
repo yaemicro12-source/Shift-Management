@@ -119,81 +119,8 @@ def required_count(day, slot):
 
 
 def refresh_day_shortages(stores, day):
-    """手動編集・削除後、その日の不足を再計算する。"""
-    for store in stores:
-        schedule = get_month_schedule(
-            store.area, day.year, day.month
-        )
-        if schedule is None or schedule.status < 2:
-            continue
-
-        ShiftShortage.objects.filter(
-            store=store,
-            target_date=day,
-        ).delete()
-
-        shifts = list(
-            ShiftAssignment.objects.filter(
-                store=store,
-                work_date=day,
-                status__in=[1, 2],
-                is_training=False,
-                staff__isnull=False,
-                staff__is_trainee=False,
-            ).select_related("shift_time_slot")
-        )
-
-        slots = ShiftTimeSlot.objects.filter(
-            store=store,
-            is_active=True,
-        )
-
-        for slot in slots:
-            start = minutes(slot.start_time)
-            end = minutes(slot.end_time, end=True)
-            required = required_count(day, slot)
-
-            covered = set()
-            full_worker = False
-
-            for shift in shifts:
-                shift_start = shift.start_time
-                shift_end = shift.end_time
-
-                if shift.shift_time_slot:
-                    if shift_start is None:
-                        shift_start = shift.shift_time_slot.start_time
-                    if shift_end is None:
-                        shift_end = shift.shift_time_slot.end_time
-
-                if shift_start is None or shift_end is None:
-                    continue
-
-                actual_start = minutes(shift_start)
-                actual_end = minutes(shift_end, end=True)
-
-                if (
-                    actual_start <= start
-                    and actual_end > start
-                    and actual_end >= end - 15
-                ):
-                    covered.add(shift.staff_id)
-                    if actual_end >= end:
-                        full_worker = True
-
-            # 終了まで残る人がいなければ、早退者だけでは埋まらない
-            assigned = len(covered) if full_worker else 0
-
-            if assigned < required:
-                ShiftShortage.objects.create(
-                    store=store,
-                    target_date=day,
-                    shift_time_slot=slot,
-                    required_count=required,
-                    assigned_count=assigned,
-                    note="勤務時間・退勤条件を含めて再計算",
-                )
-
+    from .staff_requests import recalculate_shortages
+    recalculate_shortages(stores, day)
 
 @manager_required
 def shift_management_page(request):
@@ -402,6 +329,7 @@ def shift_management_page(request):
                 state == 1
                 and draft_count == 0
                 and confirmed_count == 0
+                and first >= timezone.localdate().replace(day=1)
             ),
             "can_delete": (
                 state <= 2

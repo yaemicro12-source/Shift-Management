@@ -25,7 +25,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import F
 from django.urls import reverse
 from collections import defaultdict
-
+from .staff_requests import reject_past_generation
 
 from .shift_controls import (
     allowed_stores,
@@ -885,10 +885,29 @@ def edit_shift(request):
                         "希望どおり" if matches else "相違あり"
                     )
 
+        current_assignments = []
+
+        for shift in assigned:
+            if shift.start_time is None or shift.end_time is None:
+                continue
+
+            slot_name = (
+                shift.shift_time_slot.name
+                if shift.shift_time_slot
+                else "手動枠"
+            )
+
+            current_assignments.append(
+                f"{shift.store.name}・{slot_name} "
+                f"{time_text(shift.start_time)}"
+                f"〜{time_text(shift.end_time, end=True)}"
+            )
+
         preference_rows.append({
             "staff": staff,
             "wish_text": wish_text,
             "status": status,
+            "current_assignments": current_assignments,
         })
 
     # 下書きの月だけ編集可能
@@ -1166,6 +1185,7 @@ def _shift_time(value):
 
 @manager_required
 @require_POST
+@reject_past_generation
 def generate_shift(request):
     """選択したエリア・月のシフトを下書きで生成する。"""
     try:

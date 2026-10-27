@@ -120,11 +120,15 @@
         <strong>この日の不足</strong>
         <ul>
             {% for row in day_shortages %}
-            <li>
+        <li>
+            <a class="shortage-inline-link"
+            href="{% url 'shift_management:shortage_request' row.id %}">
                 {{ row.store.name }}・{{ row.shift_time_slot.name }}：
                 {{ row.missing_count }}人不足
                 （配置{{ row.assigned_count }}／必要{{ row.required_count }}）
-            </li>
+                <span>出勤依頼へ →</span>
+            </a>
+        </li>
             {% endfor %}
         </ul>
     </div>
@@ -269,7 +273,7 @@
                     <tr>
                         <th>スタッフ</th>
                         <th>希望時間</th>
-                        <th>状態</th>
+                        <th>現在の配置</th>
                     </tr>
                 </thead>
 

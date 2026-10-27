@@ -2894,3 +2894,127 @@ div.settings-menu-item {
 .edit-form-fields:disabled {
     opacity: 0.55;
 }
+/* 不足一覧・出勤依頼 */
+.shortage-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.shortage-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.shortage-table th {
+    padding: 13px 16px;
+    background: #f5f7fb;
+    color: #52647c;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.shortage-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e5eaf2;
+    color: #29384c;
+    vertical-align: middle;
+}
+
+.shortage-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.shortage-count {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #fff0ef;
+    color: #b42318;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.shortage-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.shortage-action,
+.shortage-action:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border: 1px solid #d5dfed;
+    border-radius: 7px;
+    background: white;
+    color: #3869a3;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.shortage-action.primary,
+.shortage-action.primary:visited {
+    background: #edf4fd;
+    border-color: #c6d9f2;
+    color: #225b9c;
+}
+
+.shortage-action:hover {
+    background: #e5eefb;
+}
+
+.shortage-inline-link,
+.shortage-inline-link:visited {
+    color: #663c00;
+    text-decoration: none;
+}
+
+.shortage-inline-link:hover {
+    text-decoration: underline;
+}
+
+.shortage-inline-link span {
+    display: inline-block;
+    margin-left: 12px;
+    color: #3869a3;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.request-note {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 20px 0;
+    color: #52647c;
+    font-size: 14px;
+}
+
+.request-note textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border: 1px solid #d5dfed;
+    border-radius: 8px;
+    font: inherit;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.current-assignment {
+    margin-bottom: 5px;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.workflow-filter,
+.workflow-actions {
+    row-gap: 14px;
+}
