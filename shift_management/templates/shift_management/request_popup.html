@@ -1,0 +1,120 @@
+{% if popup_requests %}
+<dialog id="request-popup" aria-labelledby="request-popup-title">
+    <h2 id="request-popup-title">未回答の出勤依頼</h2>
+    <p>{{ popup_requests|length }}件の依頼があります。</p>
+
+    {% for item in popup_requests %}
+    <article class="request-popup-card">
+        <strong>
+            {{ item.shortage.target_date|date:"n月j日（D）" }}
+            ／ {{ item.shortage.store.name }}
+        </strong>
+
+        <p>{{ item.message|linebreaksbr }}</p>
+
+        <small>
+            回答期限：{{ item.response_deadline|date:"n/j H:i" }}
+        </small>
+
+        <form method="post"
+              action="{% url 'shift_management:respond_request' item.id %}">
+            {% csrf_token %}
+            <button name="action" value="accept">承認</button>
+            <button name="action" value="decline">拒否</button>
+            <button name="action" value="hold">保留</button>
+        </form>
+    </article>
+    {% endfor %}
+
+    <p class="request-popup-help">
+        保留した依頼は次回ログイン時に再表示します。<br>
+        承認後のシフトへの配置は管理者が行います。
+    </p>
+</dialog>
+
+<style>
+    #request-popup {
+        box-sizing: border-box;
+        width: min(540px, calc(100% - 32px));
+        max-height: 85vh;
+        padding: 24px;
+        overflow-y: auto;
+        border: none;
+        border-radius: 18px;
+        background: white;
+        color: #263445;
+        box-shadow: 0 20px 70px #14253b33;
+    }
+
+    #request-popup::backdrop {
+        background: #14253b80;
+    }
+
+    #request-popup h2 {
+        margin: 0 0 10px;
+        font-size: 21px;
+    }
+
+    .request-popup-card {
+        margin-top: 16px;
+        padding: 18px;
+        border: 1px solid #dfe7f0;
+        border-radius: 12px;
+        background: #f8fafd;
+        font-size: 14px;
+        line-height: 1.8;
+        overflow-wrap: anywhere;
+    }
+
+    .request-popup-card small {
+        color: #986015;
+    }
+
+    .request-popup-card form {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .request-popup-card button {
+        flex: 1;
+        padding: 11px 8px;
+        border: 1px solid #d5dfeb;
+        border-radius: 8px;
+        background: white;
+        color: #43536a;
+        font: inherit;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .request-popup-card button[value="accept"] {
+        background: #3378c6;
+        border-color: #3378c6;
+        color: white;
+    }
+
+    .request-popup-card button[value="decline"] {
+        border-color: #e6bcbc;
+        color: #b44545;
+    }
+
+    .request-popup-help {
+        margin-bottom: 0;
+        color: #6b7788;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+</style>
+
+<script>
+    (() => {
+        const popup = document.getElementById("request-popup");
+        popup.showModal();
+
+        popup.addEventListener("cancel", (event) => {
+            event.preventDefault();
+        });
+    })();
+</script>
+{% endif %}

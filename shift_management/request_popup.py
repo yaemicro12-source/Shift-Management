@@ -15,21 +15,30 @@ def pending_requests(request):
     if not request.user.is_authenticated:
         return {}
 
-    staff = StaffProfile.objects.filter(user=request.user).first()
+    staff = StaffProfile.objects.filter(
+        user=request.user
+    ).first()
+
     if staff is None or not staff.is_active:
         return {}
 
-    rows = ShiftAdjustmentRequest.objects.filter(
-        recipient=staff,
-        status=1,
-        response_deadline__gt=timezone.now(),
-    ).select_related(
-        "requested_by",
-        "shortage__store",
-        "shortage__shift_time_slot",
-    ).order_by("response_deadline", "pk")
+    rows = (
+        ShiftAdjustmentRequest.objects.filter(
+            recipient=staff,
+            status=1,
+            response_deadline__gt=timezone.now(),
+        )
+        .select_related(
+            "requested_by",
+            "shortage__store",
+            "shortage__shift_time_slot",
+        )
+        .order_by("response_deadline", "pk")
+    )
 
-    deferred = request.session.get("deferred_request_ids", [])
+    deferred = request.session.get(
+        "deferred_request_ids", []
+    )
 
     return {
         "pending_request_count": rows.count(),
@@ -73,6 +82,7 @@ def respond_request(request, request_id):
                 deferred = request.session.get(
                     "deferred_request_ids", []
                 )
+
                 request.session["deferred_request_ids"] = list(
                     set(deferred + [row.pk])
                 )
@@ -114,6 +124,7 @@ def respond_request(request, request_id):
                         [shortage.store],
                         shortage.target_date,
                     )
+
                     shortage.refresh_from_db()
 
                     if (
@@ -124,8 +135,41 @@ def respond_request(request, request_id):
                             "この枠の不足は解消しています。"
                         )
 
-                    _, reason = eligibility(staff, shortage)
+                    _, reason = eligibility(
+                        staff, shortage
+                    )
 
                     if reason:
                         raise ValidationError(
                             f"現在は承認できません：{reason}"
+                        )
+
+                row.status = (
+                    2 if action == "accept" else 3
+                )
+                row.responded_at = timezone.now()
+
+                row.save(
+                    update_fields=[
+                        "status",
+                        "responded_at",
+                    ]
+                )
+
+                messages.success(
+                    request,
+                    "回答を保存しました。承認後の配置は管理者が行います。",
+                )
+
+            else:
+                raise ValidationError(
+                    "操作が不正です。"
+                )
+
+    except ValidationError as exc:
+        messages.error(
+            request,
+            " ".join(exc.messages),
+        )
+
+    return redirect("shift_management:message")
