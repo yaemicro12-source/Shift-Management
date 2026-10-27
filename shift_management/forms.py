@@ -81,6 +81,7 @@ class StaffProfileForm(forms.ModelForm):
                 "joined_on",
                 "last_train_departure_time",
                 "is_trainee",
+                "training_days_per_week",
                 "color",
                 "note",
                 "role",

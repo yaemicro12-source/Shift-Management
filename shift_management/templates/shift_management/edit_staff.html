@@ -116,6 +116,19 @@
                     >
                     <span>研修中</span>
                 </label>
+                    <div class="add-staff-field">
+                    <label for="{{ form.training_days_per_week.id_for_label }}">
+                        研修の週あたり目標日数
+                    </label>
+
+                    {{ form.training_days_per_week }}
+                    {{ form.training_days_per_week.errors }}
+
+                    <small>
+                        研修中のスタッフに適用。0回で自動配置を停止します。
+                        希望時間や指導者の勤務によっては目標に届かない場合があります。
+                    </small>
+                </div>
 
                 <div class="add-staff-field">
                     <label for="color">シフトカラー</label>

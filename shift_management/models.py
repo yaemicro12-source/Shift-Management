@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MaxValueValidator
 
 # Create your models here.
 
@@ -118,6 +119,11 @@ class StaffProfile(models.Model):
         default=False,
         verbose_name = "研修中かどうか"
     ) # 研修中か
+    training_days_per_week = models.PositiveSmallIntegerField(
+        default=3,
+        validators=[MaxValueValidator(5)],
+        verbose_name="研修の週あたり目標日数",
+    )
     training_end_date = models.DateField(
         null=True,
         blank=True,
@@ -520,6 +526,10 @@ class ShiftAssignment(models.Model):
         verbose_name = "実際に勤務する店舗"
     )# 実際に勤務する店舗
     work_date = models.DateField()# 勤務日
+    is_training = models.BooleanField(
+        default=False,
+        verbose_name="研修シフトか",
+    )
     shift_time_slot = models.ForeignKey(
         ShiftTimeSlot,
         on_delete=models.SET_NULL,
