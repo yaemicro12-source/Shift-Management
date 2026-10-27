@@ -884,288 +884,375 @@ def logout_view(request):
     return redirect("shift_management:staff_login")
 
 #シフト自動生成
+from collections import defaultdict
+from jpholiday import JPHoliday
+
+
+def _shift_minutes(value, end=False):
+    result = value.hour * 60 + value.minute
+    return 1440 if end and result == 0 else result
+
+
+def _shift_time(value):
+    return time(0, 0) if value == 1440 else time(
+        value // 60, value % 60
+    )
+
+
+@manager_required
+@require_POST
 def generate_shift(request):
-    today = date.today()
-    candidates = []  # 勤務可能なスタッフの希望データ
+    today = timezone.localdate()
+    month_start = (today.replace(day=1) + timedelta(days=32)).replace(day=1)
+    year = month_start.year
+    month = month_start.month
+    month_end = date(year, month, calendar.monthrange(year, month)[1])
 
-    if today.month == 12:
-        year = today.year + 1
-        month = 1
-    else:
-        year = today.year
-        month = today.month + 1
-
-    submissions = ShiftSubmission.objects.filter(
-        is_latest=True,
-        month=month,
-        year=year,
-        staff__is_active=True,
-        staff__is_trainee=False,
-    )
-
-    for submission in submissions:
-        preferences = ShiftPreference.objects.filter(submission=submission)
-
-        for preference in preferences:
-            if preference.is_available:
-                candidates.append(preference)
-
-    # スタッフごとの勤務時間を管理
-    weekly_minutes = {}
-    monthly_minutes = {}
-    # 対象月の初日
-    month_start = date(year, month, 1)
-
-    # 前月末の5日間を取得
-    previous_start = month_start - timedelta(days=5)
-
-    working_days = {}
-
-    # 前月の確定シフトと対象月の既存シフトを取得
-    existing_shifts = ShiftAssignment.objects.filter(
-        work_date__gte=previous_start,
-        work_date__lt=month_start,
-        status=2
-    )
-
-    for shift in existing_shifts:
-        working_days.setdefault(
-            shift.staff_id, set()
-        ).add(shift.work_date)
-
-
-    # 来月の最終日を取得
-    last_day = calendar.monthrange(year, month)[1]
-
-    # 来月1日から月末まで繰り返す
-    for day in range(1, last_day + 1):
-        target_date = date(year, month, day)
-
-        # 月曜日を週の開始日とする
-        week_start = target_date - timedelta(
-            days=target_date.weekday()
-        )
-        week_end = week_start + timedelta(
-            days= 6
-        )
-
-        # その曜日の必要人数ルールを取得
-        rules = RequiredStaffingRule.objects.filter(
-            weekday=target_date.weekday()
-        )
-
-        assigned_staff = set()
-
-        for rule in rules:
-            canworkers = []  # 条件に一致したスタッフ
-            worker_end_times = {}
-            worker_minutes = {}
-            # シフト枠の勤務時間を分単位で計算
-
-            end_datetime = datetime.combine(
-                target_date,
-                rule.shift_time_slot.end_time
-            )
-            start_datetime = datetime.combine(
-                target_date,
-                rule.shift_time_slot.start_time
+    try:
+        with transaction.atomic():
+            # 同じ管理者による生成処理を直列化
+            manager = StaffProfile.objects.select_for_update().get(
+                user=request.user
             )
 
-            work_minutes = int(
-                (end_datetime - start_datetime).total_seconds() / 60
+            scopes = ManagementScope.objects.filter(manager=manager)
+            stores = list(
+                Store.objects.select_for_update().filter(
+                    Q(area_id__in=scopes.values("area_id"))
+                    | Q(id__in=scopes.values("store_id"))
+                ).distinct().order_by("id")
             )
 
-            # その日に勤務できるスタッフを確認
-            for candidate in candidates:
-                if candidate.target_date == target_date:
-                    staff = candidate.submission.staff
+            if not stores:
+                raise ValueError("担当店舗が設定されていません。")
 
-                    # 未設定ならシフト枠の終了まで勤務可能
-                    actual_end_time = rule.shift_time_slot.end_time
-                    departure_time = staff.last_train_departure_time
+            store_ids = [store.id for store in stores]
 
-                    if departure_time is not None:
-                        actual_end_time = min(
-                            actual_end_time,
-                            departure_time,
+            # 手動登録・確定分を含め、既存データは上書きしない
+            if ShiftAssignment.objects.filter(
+                store_id__in=store_ids,
+                work_date__range=(month_start, month_end),
+                status__in=[1, 2],
+            ).exists():
+                raise ValueError(
+                    "対象月にシフトが登録済みです。"
+                    "重複を防ぐため、自動生成を停止しました。"
+                )
+
+            if ShiftShortage.objects.filter(
+                store_id__in=store_ids,
+                target_date__range=(month_start, month_end),
+            ).exists():
+                raise ValueError(
+                    "対象月に不足記録が登録済みです。"
+                    "重複を防ぐため、自動生成を停止しました。"
+                )
+
+            slots = list(
+                ShiftTimeSlot.objects.filter(
+                    store_id__in=store_ids,
+                    is_active=True,
+                ).select_related("store").order_by("id")
+            )
+            if not slots:
+                raise ValueError("担当店舗に有効なシフト枠がありません。")
+
+            for slot in slots:
+                if (
+                    _shift_minutes(slot.end_time, end=True)
+                    <= _shift_minutes(slot.start_time)
+                ):
+                    raise ValueError(
+                        f"{slot.store.name}・{slot.name}："
+                        "24:00を超える深夜勤務は今回の対象外です。"
+                    )
+
+            rules = list(
+                RequiredStaffingRule.objects.filter(
+                    store_id__in=store_ids,
+                    shift_time_slot_id__in=[slot.id for slot in slots],
+                )
+            )
+            holidays = JPHoliday()
+            default_counts = {"朝番": 1, "昼番": 2, "夜番": 2}
+
+            def required_count(day, slot):
+                # 特定日の設定を最優先
+                exact = [
+                    rule for rule in rules
+                    if rule.store_id == slot.store_id
+                    and rule.shift_time_slot_id == slot.id
+                    and rule.target_date == day
+                ]
+                if len(exact) > 1:
+                    raise ValueError(
+                        f"{day}・{slot.store.name}・{slot.name}："
+                        "特定日の必要人数設定が重複しています。"
+                    )
+                if exact:
+                    return exact[0].required_count
+
+                # 今回指定した通常人数：平日1/2/2、土日祝2/3/3
+                if slot.name not in default_counts:
+                    raise ValueError(
+                        f"{slot.store.name}・{slot.name}："
+                        "必要人数を特定日設定に登録してください。"
+                    )
+                holiday = day.weekday() >= 5 or holidays.is_holiday(day)
+                return default_counts[slot.name] + int(holiday)
+
+            preferences = list(
+                ShiftPreference.objects.filter(
+                    submission__is_latest=True,
+                    submission__year=year,
+                    submission__month=month,
+                    submission__status__in=[2, 3],
+                    submission__staff__is_active=True,
+                    submission__staff__is_trainee=False,
+                    target_date__range=(month_start, month_end),
+                    is_available=True,
+                ).select_related("submission__staff")
+            )
+
+            preferences_by_day = defaultdict(list)
+            seen = set()
+            for preference in preferences:
+                key = (
+                    preference.submission.staff_id,
+                    preference.target_date,
+                )
+                if key in seen:
+                    raise ValueError(
+                        "同じスタッフ・日付の最新希望が重複しています。"
+                    )
+                seen.add(key)
+                preferences_by_day[preference.target_date].append(preference)
+
+            memberships = list(
+                StaffStoreAssignment.objects.filter(
+                    store_id__in=store_ids,
+                    starts_on__lte=month_end,
+                ).filter(
+                    Q(ends_on__isnull=True)
+                    | Q(ends_on__gte=month_start)
+                )
+            )
+
+            # 月初の週全体と月末後の連勤も確認
+            history_start = month_start - timedelta(
+                days=max(5, month_start.weekday())
+            )
+            history_end = month_end + timedelta(days=5)
+
+            history = ShiftAssignment.objects.filter(
+                work_date__range=(history_start, history_end),
+                status__in=[1, 2],
+            ).select_related("shift_time_slot")
+
+            working_days = defaultdict(set)
+            weekly_minutes = defaultdict(int)
+            monthly_minutes = defaultdict(int)
+
+            for shift in history:
+                if shift.staff_id is None:
+                    continue
+
+                working_days[shift.staff_id].add(shift.work_date)
+
+                start = shift.start_time
+                end = shift.end_time
+                if shift.shift_time_slot:
+                    if start is None:
+                        start = shift.shift_time_slot.start_time
+                    if end is None:
+                        end = shift.shift_time_slot.end_time
+                if start is None or end is None:
+                    raise ValueError(
+                        f"既存シフトID {shift.id} の勤務時刻が未設定です。"
+                    )
+
+                duration = (
+                    _shift_minutes(end, end=True) - _shift_minutes(start)
+                )
+                if duration <= 0:
+                    raise ValueError(
+                        f"既存シフトID {shift.id} の時刻を確認してください。"
+                    )
+
+                duration = max(0, duration - shift.break_minutes)
+                week = shift.work_date - timedelta(
+                    days=shift.work_date.weekday()
+                )
+                weekly_minutes[shift.staff_id, week] += duration
+                if month_start <= shift.work_date <= month_end:
+                    monthly_minutes[shift.staff_id] += duration
+
+            def candidates_for(day, slot):
+                result = []
+                start = _shift_minutes(slot.start_time)
+                end = _shift_minutes(slot.end_time, end=True)
+                week = day - timedelta(days=day.weekday())
+                week_end = week + timedelta(days=6)
+
+                member_ids = {
+                    item.staff_id for item in memberships
+                    if item.store_id == slot.store_id
+                    and item.starts_on <= day
+                    and (item.ends_on is None or item.ends_on >= day)
+                }
+
+                for preference in preferences_by_day[day]:
+                    staff = preference.submission.staff
+                    days = working_days[staff.id]
+
+                    if staff.id not in member_ids:
+                        continue
+                    if staff.joined_on > day or day in days:
+                        continue
+                    if (
+                        preference.available_start_time is None
+                        or preference.available_end_time is None
+                    ):
+                        continue
+
+                    actual_end = end
+                    if staff.last_train_departure_time is not None:
+                        actual_end = min(
+                            end,
+                            _shift_minutes(
+                                staff.last_train_departure_time, end=True
+                            ),
                         )
 
-                    actual_end_datetime = datetime.combine(
-                        target_date,
-                        actual_end_time,
-                    )
-
-                    # 15分を超える早退は採用しない
+                    if actual_end <= start or end - actual_end > 15:
+                        continue
                     if (
-                        end_datetime - actual_end_datetime
-                        > timedelta(minutes=15)
+                        _shift_minutes(preference.available_start_time) > start
+                        or _shift_minutes(
+                            preference.available_end_time, end=True
+                        ) < actual_end
                     ):
                         continue
 
-                    if actual_end_datetime <= start_datetime:
+                    duration = actual_end - start
+
+                    if (
+                        staff.weekly_max_minutes is not None
+                        and weekly_minutes[staff.id, week] + duration
+                        > staff.weekly_max_minutes
+                    ):
+                        continue
+                    if (
+                        staff.monthly_max_minutes is not None
+                        and monthly_minutes[staff.id] + duration
+                        > staff.monthly_max_minutes
+                    ):
+                        continue
+                    if sum(week <= value <= week_end for value in days) >= 5:
                         continue
 
-                    # 上限判定も実際の勤務時間で計算
-                    work_minutes = int(
-                        (
-                            actual_end_datetime - start_datetime
-                        ).total_seconds() / 60
-                    )
+                    consecutive = 1
+                    for direction in (-1, 1):
+                        check = day + timedelta(days=direction)
+                        while check in days:
+                            consecutive += 1
+                            check += timedelta(days=direction)
+                    if consecutive > 5:
+                        continue
 
-                    worker_end_times[staff.id] = actual_end_time
-                    worker_minutes[staff.id] = work_minutes
+                    result.append((staff, actual_end, duration))
 
-                    # 希望開始時間がシフト開始時間以前か
-                    if (
-                        candidate.available_start_time is not None
-                        and candidate.available_end_time is not None
-                        and candidate.available_start_time
-                        <= rule.shift_time_slot.start_time
-                    ):
-                        # 希望終了時間内に退勤できるか
-                        if (
-                            candidate.available_end_time
-                            >= actual_end_time
-                        ):
+                result.sort(key=lambda item: (
+                    not item[0].shift_priority,
+                    monthly_minutes[item[0].id],
+                    item[0].id,
+                ))
+                return result
 
-                            # 対象店舗に所属しているか
-                            if StaffStoreAssignment.objects.filter(
-                                staff=candidate.submission.staff,
-                                store=rule.store
-                            ).filter(
-                                Q(starts_on__lte=target_date)
-                                | Q(starts_on__isnull=True),
-                                Q(ends_on__gte=target_date)
-                                | Q(ends_on__isnull=True)
-                            ).exists():
+            generated = 0
+            shortage_slots = 0
+            shortage_people = 0
 
-                                staff = candidate.submission.staff
+            for number in range(1, month_end.day + 1):
+                day = date(year, month, number)
+                week = day - timedelta(days=day.weekday())
 
-                                # 同じ日の重複配置を防ぐ
-                                if staff not in assigned_staff:
-
-                                    # スタッフの勤務時間上限
-                                    weekly_limit = staff.weekly_max_minutes
-                                    monthly_limit = staff.monthly_max_minutes
-
-                                    # 現在の勤務時間に今回のシフトを加算
-                                    week_key = (staff.id, week_start)
-                                    month_key = staff.id
-
-                                    weekly_total = (
-                                        weekly_minutes.get(week_key, 0)
-                                        + work_minutes
-                                    )
-                                    monthly_total = (
-                                        monthly_minutes.get(month_key, 0)
-                                        + work_minutes
-                                    )
-
-                                    # 週の勤務時間上限を確認
-                                    if (
-                                        weekly_limit is not None
-                                        and weekly_total > weekly_limit
-                                    ):
-                                        continue
-
-                                    # 月の勤務時間上限を確認
-                                    if (
-                                        monthly_limit is not None
-                                        and monthly_total > monthly_limit
-                                    ):
-                                        continue
-                                    
-                                    # 週5日までの勤務制限
-                                    weekly_work_days = sum(
-                                        1
-                                        for work_day in working_days.get(staff.id, set())
-                                        if week_start <= work_day <= week_end
-                                    )
-
-                                    if weekly_work_days >= 5:
-                                        continue
-
-                                    # 月をまたいだ連続勤務も確認
-                                    consecutive_days = 0
-                                    check_date = target_date - timedelta(days=1)
-
-                                    while check_date in working_days.get(staff.id, set()):
-                                        consecutive_days += 1
-                                        check_date -= timedelta(days=1)
-
-                                    # 6連勤を禁止
-                                    if consecutive_days >= 5:
-                                        continue
-                                    
-
-                                    canworkers.append(staff)
-
-                                    
-            # 枠の終了まで勤務できるスタッフを先に選ぶ
-            full_workers = [
-                staff
-                for staff in canworkers
-                if worker_end_times[staff.id]
-                == rule.shift_time_slot.end_time
-            ]
-
-            early_workers = [
-                staff
-                for staff in canworkers
-                if worker_end_times[staff.id]
-                < rule.shift_time_slot.end_time
-            ]
-
-            selected_workers = full_workers[:rule.required_count]
-
-            # 最低1人が枠の終了まで残る場合のみ早退者を追加
-            if selected_workers:
-                remaining_count = (
-                    rule.required_count - len(selected_workers)
-                )
-                selected_workers.extend(
-                    early_workers[:remaining_count]
-                )
-            for worker in selected_workers:
-                work_minutes = worker_minutes[worker.id]
-                assigned_staff.add(worker)
-                working_days.setdefault(worker.id, set()).add(target_date)
-                # 選ばれたスタッフの勤務時間を加算
-                week_key = (worker.id, week_start)
-                month_key = worker.id
-
-                weekly_minutes[week_key] = (
-                    weekly_minutes.get(week_key, 0)
-                    + work_minutes
+                # 候補が少ない枠を先に処理。同条件なら夜番を優先
+                daily_slots = sorted(
+                    slots,
+                    key=lambda slot: (
+                        len(candidates_for(day, slot))
+                        - required_count(day, slot),
+                        -_shift_minutes(slot.end_time, end=True),
+                        slot.id,
+                    ),
                 )
 
-                monthly_minutes[month_key] = (
-                    monthly_minutes.get(month_key, 0)
-                    + work_minutes
-                )
-                ShiftAssignment.objects.create(
-                    staff=worker,
-                    store=rule.store,
-                    work_date=target_date,
-                    shift_time_slot=rule.shift_time_slot,
-                    start_time=rule.shift_time_slot.start_time,
-                    end_time=worker_end_times[worker.id],
-                    status=1,
-                )
+                for slot in daily_slots:
+                    required = required_count(day, slot)
+                    if required == 0:
+                        continue
 
-            # 人数不足を計算
-            if len(selected_workers) < rule.required_count:
-                shortage = (
-                    rule.required_count - len(selected_workers)
-                )
-                ShiftShortage.objects.create(
-                    store = rule.store,
-                    target_date = target_date,
-                    shift_time_slot = rule.shift_time_slot,
-                    required_count = rule.required_count,
-                    assigned_count = rule.required_count - shortage
-                )
-            
+                    candidates = candidates_for(day, slot)
+                    end = _shift_minutes(slot.end_time, end=True)
+
+                    full = [
+                        item for item in candidates if item[1] == end
+                    ]
+                    early = [
+                        item for item in candidates if item[1] < end
+                    ]
+
+                    selected = full[:required]
+
+                    # 終了まで残る人がいる場合だけ早退者を配置
+                    if selected:
+                        selected.extend(
+                            early[:required - len(selected)]
+                        )
+
+                    for staff, actual_end, duration in selected:
+                        ShiftAssignment.objects.create(
+                            staff=staff,
+                            store=slot.store,
+                            work_date=day,
+                            shift_time_slot=slot,
+                            start_time=slot.start_time,
+                            end_time=_shift_time(actual_end),
+                            status=1,
+                            is_training=False,
+                            created_by=manager,
+                        )
+                        working_days[staff.id].add(day)
+                        weekly_minutes[staff.id, week] += duration
+                        monthly_minutes[staff.id] += duration
+                        generated += 1
+
+                    missing = required - len(selected)
+                    if missing:
+                        ShiftShortage.objects.create(
+                            store=slot.store,
+                            target_date=day,
+                            shift_time_slot=slot,
+                            required_count=required,
+                            assigned_count=len(selected),
+                            note="自動生成：希望・退勤・勤務上限などで配置不足",
+                        )
+                        shortage_slots += 1
+                        shortage_people += missing
+
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("shift_management:manager_main")
+
+    messages.success(
+        request,
+        f"{year}年{month}月：下書き{generated}件を作成しました。"
+        f"不足{shortage_slots}枠・延べ{shortage_people}人です。",
+    )
+    return redirect(
+        f"/edit_shift/?date={month_start:%Y-%m-%d}"
+    )    
 
 
 
