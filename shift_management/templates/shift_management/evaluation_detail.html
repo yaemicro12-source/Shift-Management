@@ -1,0 +1,139 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}スタッフ評価入力{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block header_title %}スタッフ評価入力{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="settings-message {% if message.tags %}settings-message-{{ message.tags }}{% endif %}"
+                 role="status">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <a href="{% url 'shift_management:evaluation_list' %}">
+        ← 評価一覧に戻る
+    </a>
+
+    <section class="staff-card">
+
+        <div class="staff-card-header">
+            <h1>{{ staff.name }}さんの評価</h1>
+        </div>
+
+        <div class="evaluation-detail-info">
+            <p>対象：{{ year }}年{{ month }}月</p>
+            <p>エリア：{{ area.name }}</p>
+            <p>提出期限：毎月{{ deadline_day }}日</p>
+        </div>
+
+        {% if evaluation.submitted_at %}
+
+            <div class="evaluation-result">
+                <h2>提出済み</h2>
+                <p>
+                    総合評価：
+                    <strong>{{ evaluation.total_score }} / 5.00点</strong>
+                </p>
+                <p>提出日時：{{ evaluation.submitted_at|date:"Y/m/d H:i" }}</p>
+            </div>
+
+            <h2>評価コメント</h2>
+            <p class="evaluation-saved-comment">
+                {{ evaluation.comment|default:"コメントなし"|linebreaksbr }}
+            </p>
+
+            <p>提出済みの評価は変更できません。</p>
+
+        {% elif deadline_passed %}
+
+            <p class="evaluation-empty">
+                今月の評価提出期限を過ぎているため、提出できません。
+            </p>
+
+        {% else %}
+
+            <form method="post" class="evaluation-input-form">
+                {% csrf_token %}
+
+                {% for item in items %}
+                    <div class="evaluation-score-item">
+
+                        <h2>{{ item.name }}</h2>
+
+                        {% if item.description %}
+                            <p>{{ item.description|linebreaksbr }}</p>
+                        {% endif %}
+
+                        <p>
+                            重要度：
+                            {% if item.weight == 3 %}
+                                高
+                            {% elif item.weight == 2 %}
+                                普通
+                            {% else %}
+                                低
+                            {% endif %}
+                        </p>
+
+                        <label for="score_{{ item.id }}">
+                            評価点数
+                        </label>
+
+                        <select
+                            id="score_{{ item.id }}"
+                            name="score_{{ item.id }}"
+                            required
+                        >
+                            <option value="">選択してください</option>
+                            <option value="5">5点</option>
+                            <option value="4">4点</option>
+                            <option value="3">3点</option>
+                            <option value="2">2点</option>
+                            <option value="1">1点</option>
+                        </select>
+
+                    </div>
+                {% empty %}
+                    <p class="evaluation-empty">
+                        評価項目が登録されていません。
+                    </p>
+                {% endfor %}
+
+                {% if items %}
+                    <div class="evaluation-comment-field">
+                        <label for="comment">評価コメント</label>
+                        <textarea
+                            id="comment"
+                            name="comment"
+                            rows="5"
+                            placeholder="スタッフへの評価コメントを入力"
+                        ></textarea>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="submission-button"
+                        onclick="return confirm('この内容で評価を提出しますか？提出後は変更できません。');"
+                    >
+                        評価を提出
+                    </button>
+                {% endif %}
+            </form>
+
+        {% endif %}
+
+    </section>
+
+</div>
+{% endblock %}

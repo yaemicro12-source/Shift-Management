@@ -1180,7 +1180,7 @@ def evaluation_items(request, area_id):
                 area_id=area.id
             )
 
-        if not name or len(name) > 100 or not 1 <= weight <= 100:
+        if not name or len(name) > 100 or weight not in (1, 2, 3):
             messages.error(
                 request,
                 "項目名と配点を正しく入力してください。"
@@ -1228,5 +1228,161 @@ def evaluation_items(request, area_id):
             "area": area,
             "common_items": common_items,
             "area_items": area_items,
+        }
+    )
+from django.core.exceptions import ValidationError
+from .evaluation_services import submit_evaluation
+
+
+@login_required(login_url="shift_management:manager_login")
+def evaluation_detail(request, area_id, staff_id):
+    """前月分のスタッフ評価入力・提出画面"""
+
+    evaluator = get_object_or_404(
+        StaffProfile,
+        user=request.user
+    )
+
+    if evaluator.role != 2 and not evaluator.is_position_holder:
+        raise PermissionDenied
+
+    today = timezone.localdate()
+    previous_month = today.replace(day=1) - timedelta(days=1)
+
+    year = previous_month.year
+    month = previous_month.month
+
+    scopes = ManagementScope.objects.filter(manager=evaluator)
+
+    allowed_areas = Area.objects.filter(
+        Q(managementscope__in=scopes)
+        | Q(store__managementscope__in=scopes)
+    ).distinct()
+
+    area = get_object_or_404(
+        allowed_areas,
+        pk=area_id
+    )
+
+    setting = get_object_or_404(
+        EvaluationSetting,
+        area=area,
+        is_enabled=True
+    )
+
+    # 評価対象者をサーバー側でも再確認
+    targets = get_evaluation_targets(
+        evaluator=evaluator,
+        year=year,
+        month=month,
+        area=area
+    )
+
+    staff = get_object_or_404(
+        targets,
+        pk=staff_id
+    )
+
+    evaluation = StaffEvaluation.objects.filter(
+        area=area,
+        evaluator=evaluator,
+        staff=staff,
+        year=year,
+        month=month
+    ).first()
+
+    items = EvaluationItem.objects.filter(
+        Q(area__isnull=True) | Q(area=area),
+        is_active=True
+    ).order_by("id")
+
+    if request.method == "POST":
+
+        if evaluation and evaluation.submitted_at:
+            messages.error(request, "この評価は提出済みです。")
+            return redirect(
+                "shift_management:evaluation_detail",
+                area_id=area.id,
+                staff_id=staff.id
+            )
+
+        # 毎月の提出期限を確認
+        if today.day > setting.deadline_day:
+            messages.error(request, "今月の評価提出期限を過ぎています。")
+            return redirect(
+                "shift_management:evaluation_detail",
+                area_id=area.id,
+                staff_id=staff.id
+            )
+
+        item_scores = {}
+
+        try:
+            for item in items:
+                item_scores[item.id] = int(
+                    request.POST.get(f"score_{item.id}", "")
+                )
+        except (TypeError, ValueError):
+            messages.error(request, "すべての項目を採点してください。")
+            return redirect(
+                "shift_management:evaluation_detail",
+                area_id=area.id,
+                staff_id=staff.id
+            )
+
+        if evaluation is None:
+            evaluation = StaffEvaluation.objects.create(
+                area=area,
+                evaluator=evaluator,
+                staff=staff,
+                year=year,
+                month=month
+            )
+
+        try:
+            total_score = submit_evaluation(
+                evaluation=evaluation,
+                item_scores=item_scores,
+                comment=request.POST.get("comment", "")
+            )
+        except ValidationError as exc:
+            messages.error(
+                request,
+                " ".join(exc.messages)
+            )
+            return redirect(
+                "shift_management:evaluation_detail",
+                area_id=area.id,
+                staff_id=staff.id
+            )
+
+        messages.success(
+            request,
+            f"{staff.name}さんの評価を提出しました。（{total_score}点）"
+        )
+
+        return redirect("shift_management:evaluation_list")
+
+    saved_scores = {}
+
+    if evaluation:
+        saved_scores = {
+            score.item_id: score.score
+            for score in evaluation.scores.all()
+        }
+
+    return render(
+        request,
+        "shift_management/evaluation_detail.html",
+        {
+            "area": area,
+            "staff": staff,
+            "year": year,
+            "month": month,
+            "items": items,
+            "evaluation": evaluation,
+            "saved_scores": saved_scores,
+            "deadline_day": setting.deadline_day,
+            "deadline_passed": today.day > setting.deadline_day,
         }
     )

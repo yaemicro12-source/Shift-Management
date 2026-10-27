@@ -3,14 +3,26 @@
 
 {% block title %}スタッフ評価一覧{% endblock %}
 
-{% block header_title %}
-スタッフ評価
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
 {% endblock %}
+
+{% block header_title %}スタッフ評価{% endblock %}
 
 {% block content %}
 <div class="staff-page">
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="settings-message {% if message.tags %}settings-message-{{ message.tags }}{% endif %}"
+                 role="status">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <section class="staff-card">
+
         <div class="staff-card-header">
             <h1>{{ year }}年{{ month }}月分の評価</h1>
         </div>
@@ -18,14 +30,13 @@
         <div class="evaluation-list">
 
             {% for row in evaluation_rows %}
-
                 <div class="evaluation-item">
 
                     <div>
                         <strong>{{ row.staff.name }}</strong>
                         <p>{{ row.area.name }}</p>
                     </div>
-
+                    
                     <div>
                         {% if row.submitted %}
                             <span>提出済み</span>
@@ -33,14 +44,27 @@
                             <span>未提出</span>
                         {% endif %}
                     </div>
+                    <br>
+                    <a
+                        href="{% url 'shift_management:evaluation_detail' row.area.id row.staff.id %}"
+                        class="submission-button"
+                    >
+                        {% if row.submitted %}
+                            評価を確認
+                        {% else %}
+                            評価する
+                        {% endif %}
+                    </a>
 
                 </div>
-
             {% empty %}
-                <p>評価対象のスタッフはいません。</p>
+                <p class="evaluation-empty">
+                    評価対象のスタッフはいません。
+                </p>
             {% endfor %}
 
         </div>
+
     </section>
 
 </div>

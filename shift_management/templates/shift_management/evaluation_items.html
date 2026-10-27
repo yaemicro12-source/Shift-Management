@@ -1,0 +1,183 @@
+
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}評価項目管理{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+{% endblock %}
+
+{% block header_title %}
+評価項目管理
+{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+
+    <!-- 保存結果メッセージ -->
+    {% if messages %}
+        {% for message in messages %}
+            <div
+                class="settings-message {% if message.tags %}settings-message-{{ message.tags }}{% endif %}"
+                role="status"
+            >
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 戻る -->
+    <a href="{% url 'shift_management:evaluation_settings' %}">
+        ← スタッフ評価設定に戻る
+    </a>
+
+    <section class="staff-card">
+
+        <div class="staff-card-header">
+            <h1>{{ area.name }}の評価項目</h1>
+        </div>
+
+        <!-- 全エリア共通の評価項目 -->
+        <h2>全エリア共通の評価項目</h2>
+
+        {% for item in common_items %}
+            <div class="evaluation-item">
+                <strong>{{ item.name }}</strong>
+
+                {% if item.description %}
+                    <p>{{ item.description|linebreaksbr }}</p>
+                {% endif %}
+
+                <p>
+                    重要度：
+                    {% if item.weight == 1 %}
+                        低
+                    {% elif item.weight == 2 %}
+                        普通
+                    {% elif item.weight == 3 %}
+                        高
+                    {% else %}
+                        未設定
+                    {% endif %}
+                </p>
+            </div>
+        {% empty %}
+            <p class="evaluation-empty">
+                共通の評価項目はまだ登録されていません。
+            </p>
+        {% endfor %}
+
+        <!-- エリア独自の評価項目 -->
+        <h2>エリア独自の評価項目</h2>
+
+        {% for item in area_items %}
+
+            <form
+                method="post"
+                class="evaluation-settings-form"
+            >
+                {% csrf_token %}
+
+                <input
+                    type="hidden"
+                    name="item_id"
+                    value="{{ item.id }}"
+                >
+
+                <label for="name_{{ item.id }}">
+                    評価項目名
+                </label>
+                <input
+                    type="text"
+                    id="name_{{ item.id }}"
+                    name="name"
+                    value="{{ item.name }}"
+                    maxlength="100"
+                    required
+                >
+
+                <label for="description_{{ item.id }}">
+                    評価基準の説明
+                </label>
+                <textarea
+                    id="description_{{ item.id }}"
+                    name="description"
+                    rows="3"
+                >{{ item.description }}</textarea>
+
+                <label for="weight_{{ item.id }}">
+                    重要度
+                </label>
+                <select id="weight_{{ item.id }}" name="weight" required>
+                    <option value="3" {% if item.weight == 3 %}selected{% endif %}>高</option>
+                    <option value="2" {% if item.weight == 2 %}selected{% endif %}>普通</option>
+                    <option value="1" {% if item.weight == 1 %}selected{% endif %}>低</option>
+                </select>
+
+                <button
+                    type="submit"
+                    class="submission-button"
+                >
+                    変更を保存
+                </button>
+
+            </form>
+
+        {% empty %}
+            <p class="evaluation-empty">
+                このエリア独自の評価項目はまだありません。
+            </p>
+        {% endfor %}
+
+        <!-- 新しい評価項目の追加 -->
+        <h2>新しい評価項目を追加</h2>
+
+        <form
+            method="post"
+            class="evaluation-settings-form"
+        >
+            {% csrf_token %}
+
+            <label for="new_item_name">
+                評価項目名
+            </label>
+            <input
+                type="text"
+                id="new_item_name"
+                name="name"
+                maxlength="100"
+                placeholder="例：接客態度"
+                required
+            >
+
+            <label for="new_item_description">
+                評価基準の説明
+            </label>
+            <textarea
+                id="new_item_description"
+                name="description"
+                rows="3"
+                placeholder="例：お客様に丁寧な対応ができているか"
+            ></textarea>
+
+            <label for="new_item_weight">重要度</label>
+                <select id="new_item_weight" name="weight" required>
+                    <option value="3">高</option>
+                    <option value="2" selected>普通</option>
+                    <option value="1">低</option>
+                </select>
+
+            <button
+                type="submit"
+                class="submission-button"
+            >
+                評価項目を追加
+            </button>
+
+        </form>
+
+    </section>
+
+</div>
+{% endblock %}

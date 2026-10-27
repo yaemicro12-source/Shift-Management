@@ -2524,3 +2524,128 @@ div.settings-menu-item {
     border-color: #efc3c3;
     color: #b83b3b;
 }
+/* 評価項目が未登録の場合 */
+
+.evaluation-empty {
+    margin: 12px 24px 20px;
+    color: #718198;
+    font-size: 13px;
+    line-height: 1.6;
+}
+/* 評価項目の重要度選択 */
+
+.evaluation-settings-form select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #263c58;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.evaluation-settings-form select:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+/* スタッフ評価入力画面 */
+
+.evaluation-detail-info {
+    margin: 20px 24px;
+    padding: 16px 20px;
+    background: #eaf2fc;
+    border: 1px solid #cbd8e8;
+    border-radius: 8px;
+    color: #263c58;
+}
+
+.evaluation-detail-info p {
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+.evaluation-input-form {
+    padding: 0 24px 24px;
+}
+
+.evaluation-score-item {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e1e8f1;
+    border-radius: 9px;
+}
+
+.evaluation-score-item h2 {
+    margin: 0 0 10px;
+    color: #263c58;
+    font-size: 17px;
+}
+
+.evaluation-score-item p {
+    color: #718198;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.evaluation-score-item label,
+.evaluation-comment-field label {
+    display: block;
+    margin: 14px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #263c58;
+}
+
+.evaluation-score-item select,
+.evaluation-comment-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #dce2ea;
+    border-radius: 7px;
+    background: #fff;
+    color: #263c58;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.evaluation-score-item select:focus,
+.evaluation-comment-field textarea:focus {
+    outline: none;
+    border-color: #3478c7;
+    box-shadow: 0 0 0 3px rgba(52, 120, 199, 0.12);
+}
+
+.evaluation-comment-field {
+    margin: 20px 0;
+}
+
+.evaluation-result {
+    margin: 20px 24px;
+    padding: 20px;
+    border: 1px solid #b9dfc7;
+    border-radius: 9px;
+    background: #eaf7ef;
+    color: #287a4b;
+}
+
+.evaluation-result h2 {
+    margin-top: 0;
+    font-size: 18px;
+}
+
+.evaluation-result strong {
+    font-size: 24px;
+}
+
+.evaluation-saved-comment {
+    margin: 12px 24px 20px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
