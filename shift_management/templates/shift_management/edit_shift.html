@@ -90,20 +90,19 @@
             </thead>
 
             <tbody>
-                {% for week in weeks %}
+                                {% for week in calendar_weeks %}
                 <tr>
-                    {% for day in week %}
-                    <td
-                        {% if day == 0 %}
-                        class="empty-day"
-                        {% endif %}
-                    >
-                        {% if day != 0 %}
+                    {% for cell in week %}
+                    <td class="{% if cell.day == 0 %}empty-day{% elif cell.shortage %}has-shortage{% endif %}">
+                        {% if cell.day != 0 %}
                         <a
-                            class="day-link {% if day == display_day %}is-selected{% endif %}"
-                            href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ day|stringformat:'02d' }}"
+                            class="day-link {% if cell.day == display_day %}is-selected{% endif %}"
+                            href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ cell.day|stringformat:'02d' }}{% if selected_store_id %}&store={{ selected_store_id }}{% endif %}"
                         >
-                            {{ day }}
+                            {{ cell.day }}
+                            {% if cell.shortage %}
+                            <span class="edit-shortage-badge">不足</span>
+                            {% endif %}
                         </a>
                         {% endif %}
                     </td>
@@ -113,6 +112,25 @@
             </tbody>
         </table>
     </section>
+        <p class="edit-shortage-legend">
+        赤い日付は人数不足がある日です。
+        店舗を選択すると、その店舗の不足だけを表示します。
+    </p>
+
+    {% if day_shortages %}
+    <div class="workflow-alert">
+        <strong>この日の不足</strong>
+        <ul>
+            {% for row in day_shortages %}
+            <li>
+                {{ row.store.name }}・{{ row.shift_time_slot.name }}：
+                {{ row.missing_count }}人不足
+                （配置{{ row.assigned_count }}／必要{{ row.required_count }}）
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     <!-- 選択中の日付 -->
     <h2 class="edit-date-heading">
@@ -327,6 +345,14 @@
                 {{ form.work_date }}
                 {{ form.shift_time_slot }}
 
+                {% if not can_edit_shifts %}
+                <p class="workflow-alert">
+                    手動登録・変更は、自動生成済みの下書きで利用できます。
+                </p>
+                {% endif %}
+
+                <fieldset class="edit-form-fields"
+                    {% if not can_edit_shifts %}disabled{% endif %}>
                 <!-- 勤務日 -->
                 <div class="edit-field">
                     <label>勤務日</label>
@@ -421,7 +447,7 @@
                 >
                     登録・変更を反映
                 </button>
-
+                </fieldset>
                 <!-- 削除 -->
                 {% if selected_shift %}
                 <button

@@ -14,18 +14,14 @@
 
 {% block content %}
 <div class="staff-page">
-    <div class="shift-create-header">
-    <form
-        method="post"
-        action="{% url 'shift_management:generate_shift' %}"
-        onsubmit="return confirm('担当エリアの翌月シフトを作成しますか？');"
-    >
-        {% csrf_token %}
-        <button type="submit" class="submission-button">
-            シフト作成
-        </button>
-    </form>
-</div>
+        <div class="shift-create-header">
+        <a
+            href="{% url 'shift_management:shift_management' %}"
+            class="submission-button"
+        >
+            シフト作成・管理
+        </a>
+    </div>
 
     <!-- 月間シフトカレンダー -->
     <section class="staff-card">

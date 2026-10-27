@@ -183,6 +183,13 @@
     </header>
 
     <main>
+        {% if messages %}
+        <div class="workflow-messages" role="status">
+            {% for message in messages %}
+            <p class="workflow-alert">{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}
         {% endblock %}
     </main>

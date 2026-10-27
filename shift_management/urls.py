@@ -3,6 +3,7 @@
 from django.urls import path
 
 from . import views
+from .shift_controls import shift_management_page
 
 app_name = 'shift_management'
 
@@ -51,5 +52,10 @@ urlpatterns = [
         "generate_shift/",
         views.generate_shift,
         name="generate_shift",
+    ),
+    path(
+        "shift_management/",
+        shift_management_page,
+        name="shift_management",
     ),
 ]

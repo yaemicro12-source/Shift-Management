@@ -21,6 +21,18 @@ from django.db.models import Q
 from .models import EvaluationItem
 from .models import ShiftSchedule
 from datetime import time
+from django.core.exceptions import ValidationError
+from django.db.models import F
+from django.urls import reverse
+from collections import defaultdict
+
+
+from .shift_controls import (
+    controlled_stores,
+    get_month_schedule,
+    require_draft_month,
+    refresh_day_shortages,
+)
 
 def get_evaluation_areas(evaluator, year, month):
     """
@@ -370,242 +382,313 @@ def manager_main(request):
 
 @manager_required
 def edit_shift(request):
-    """シフト編集画面"""
-    today = date.today()
-    now_month = today.month
-    now_year = today.year
-    stores = Store.objects.all()
-    timeslots = ShiftTimeSlot.objects.all()
-        # 自分が管理するエリアの店舗だけ登録可能にする
+    """下書きシフトの編集・希望一覧・不足日の表示。"""
     manager = request.user.staffprofile
-    scopes = ManagementScope.objects.filter(manager=manager)
+    editable_stores = allowed_stores(manager)
+    stores = editable_stores.order_by("id")
 
-    managed_area_ids = set(
-        scopes.exclude(area__isnull=True)
-        .values_list("area_id", flat=True)
-    )
+    def minute(value, end=False):
+        result = value.hour * 60 + value.minute
+        return 1440 if end and result == 0 else result
 
-    managed_area_ids.update(
-        Store.objects.filter(
-            id__in=scopes.exclude(store__isnull=True)
-            .values_list("store_id", flat=True)
-        ).values_list("area_id", flat=True)
-    )
+    def time_text(value, end=False):
+        if end and value == time(0, 0):
+            return "24:00"
+        return value.strftime("%H:%M")
 
-    editable_stores = Store.objects.filter(
-        area_id__in=managed_area_ids
-    )
-    shifts = ShiftAssignment.objects.filter(
-    staff__user=request.user)
-    selects = {"エリア","店舗","スタッフ"}
+    # 表示する日付
+    try:
+        if request.GET.get("date"):
+            selected_date = date.fromisoformat(
+                request.GET["date"]
+            )
+        elif request.session.get("year") and request.session.get("month"):
+            selected_date = date(
+                int(request.session["year"]),
+                int(request.session["month"]),
+                1,
+            )
+        else:
+            selected_date = (
+                timezone.localdate().replace(day=1)
+                + timedelta(days=32)
+            ).replace(day=1)
+    except (ValueError, TypeError):
+        return HttpResponseBadRequest("日付が不正です。")
 
+    year = selected_date.year
+    month = selected_date.month
+    day = selected_date.day
 
+    request.session["year"] = year
+    request.session["month"] = month
 
+    # 店舗フィルター
+    selected_store_id = request.GET.get("store", "")
+    selected_store = None
 
-    date_s = request.GET.get("date")
-    if date_s == None:
-        previous_month = request.session.get("month")
-        previous_year = request.session.get("year")
-        display_day = 1
+    if selected_store_id:
+        try:
+            selected_store = get_object_or_404(
+                editable_stores,
+                pk=int(selected_store_id),
+            )
+        except (ValueError, TypeError):
+            return HttpResponseBadRequest("店舗が不正です。")
 
-        if previous_month == None:
-            display_year = now_year
-            if now_month <= 11:
-                display_month = now_month + 1
-
-            else :
-                display_month = 1
-                display_year = display_year + 1
-        else :
-            display_month = previous_month
-            display_year = previous_year
-    else :
-        select_date = date.fromisoformat(date_s)
-        display_year = select_date.year
-        display_month = select_date.month
-        display_day = select_date.day
-
-    request.session["month"] = display_month
-    request.session["year"] = display_year
-    context = get_calendar_data(display_year, display_month, display_day)
-    shift_id = request.GET.get("shift_id")
+    # 編集対象
     selected_shift = None
+    shift_id = request.GET.get("shift_id")
 
     if shift_id:
-        selected_shift = get_object_or_404(
-            ShiftAssignment,
-            id=shift_id
+        try:
+            selected_shift = get_object_or_404(
+                ShiftAssignment.objects.select_related(
+                    "store__area", "shift_time_slot"
+                ),
+                pk=int(shift_id),
+                store__in=editable_stores,
+            )
+        except (ValueError, TypeError):
+            return HttpResponseBadRequest("シフトIDが不正です。")
+
+    staff_queryset = StaffProfile.objects.filter(
+        Q(staffstoreassignment__store__in=editable_stores)
+        | Q(shift_assignments__store__in=editable_stores)
+    ).distinct().order_by("id")
+
+    # 個別削除
+    if request.method == "POST" and request.POST.get("action") == "delete":
+        if selected_shift is None:
+            messages.error(request, "削除するシフトを選択してください。")
+            return redirect(request.get_full_path())
+
+        try:
+            with transaction.atomic():
+                Area.objects.select_for_update().get(
+                    pk=selected_shift.store.area_id
+                )
+
+                state = get_month_schedule(
+                    selected_shift.store.area,
+                    selected_shift.work_date.year,
+                    selected_shift.work_date.month,
+                )
+
+                if (
+                    selected_shift.status != 1
+                    or (state and state.status >= 3)
+                ):
+                    raise ValidationError(
+                        "削除できるのは下書きだけです。"
+                    )
+
+                deleted_date = selected_shift.work_date
+                deleted_store_id = selected_shift.store_id
+
+                selected_shift.delete()
+
+                refresh_day_shortages(
+                    list(editable_stores),
+                    deleted_date,
+                )
+
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return redirect(request.get_full_path())
+
+        messages.success(request, "下書きを削除しました。")
+
+        return redirect(
+            f"{reverse('shift_management:edit_shift')}"
+            f"?date={deleted_date:%Y-%m-%d}"
+            f"&store={deleted_store_id}"
         )
 
+    # 登録・変更
     if request.method == "POST":
-        action = request.POST.get("action")
-
-        if action == "delete" and selected_shift is not None:
-            deleted_date = selected_shift.work_date
-            selected_shift.delete()
-
-            return redirect(
-                f"/edit_shift/?date={deleted_date:%Y-%m-%d}"
-            )
         form = ShiftAssignmentForm(
             request.POST,
-            instance=selected_shift
+            instance=selected_shift,
         )
-        form.fields["store"].queryset = editable_stores
-
-        if action == "save" and form.is_valid():
-            shift = form.save(commit=False)
-            shift.status = 1
-            shift.save()
-
-            return redirect(
-                f"/edit_shift/?date={shift.work_date:%Y-%m-%d}"
-            )
     else:
         form = ShiftAssignmentForm(
             instance=selected_shift,
-            initial={
-                "work_date": f"{display_year}-{display_month:02d}-{display_day:02d}"
-            }
+            initial={"work_date": selected_date.isoformat()},
         )
+
     form.fields["store"].queryset = editable_stores
-    hours = range(10, 23)
-    staffs = StaffProfile.objects.all()
-    context["staffs"] = staffs
-    context["staff_departure_times"] = {
-        str(staff.id): staff.last_train_departure_time.strftime("%H:%M")
-        for staff in staffs
-        if staff.last_train_departure_time is not None
-    }
-    context["staff_name"] = request.user.username
-    context["shifts"] = shifts
-    context["selects"] = selects
-    context["hours"] = hours
-    context["year"] = display_year
-    context["month"] = display_month
-    context["display_day"] = display_day
-    context["stores"] = stores
-    context["timeslots"] = timeslots
-
-    context["form"] = form
-
-    
-    # グラフで表示する日付
-    selected_date = date(
-        display_year,
-        display_month,
-        display_day
+    form.fields["staff"].queryset = staff_queryset
+    form.fields["shift_time_slot"].queryset = (
+        ShiftTimeSlot.objects.filter(store__in=editable_stores)
     )
 
-    # その日の全スタッフのシフト
-    # 画面で選択されている店舗
-    selected_store_id = request.GET.get("store", "")
+    if (
+        request.method == "POST"
+        and request.POST.get("action") == "save"
+        and form.is_valid()
+    ):
+        shift = form.save(commit=False)
 
-    # 選択日のシフトを取得
-    day_shifts = ShiftAssignment.objects.filter(
-        work_date=selected_date
+        try:
+            with transaction.atomic():
+                targets = [(shift.store, shift.work_date)]
+
+                if shift.pk:
+                    original = ShiftAssignment.objects.select_related(
+                        "store__area"
+                    ).get(
+                        pk=shift.pk,
+                        store__in=editable_stores,
+                    )
+
+                    if original.status != 1:
+                        raise ValidationError(
+                            "確定済みのシフトは変更できません。"
+                        )
+
+                    targets.append(
+                        (original.store, original.work_date)
+                    )
+
+                # 変更前・変更後の両方を確認
+                for target_store, target_day in sorted(
+                    targets,
+                    key=lambda item: (
+                        item[0].area_id,
+                        item[1],
+                    ),
+                ):
+                    Area.objects.select_for_update().get(
+                        pk=target_store.area_id
+                    )
+                    require_draft_month(
+                        target_store,
+                        target_day,
+                    )
+
+                if (
+                    shift.shift_time_slot
+                    and shift.shift_time_slot.store_id
+                    != shift.store_id
+                ):
+                    raise ValidationError(
+                        "店舗とシフト枠が一致していません。"
+                    )
+
+                belongs = StaffStoreAssignment.objects.filter(
+                    staff=shift.staff,
+                    store=shift.store,
+                    starts_on__lte=shift.work_date,
+                ).filter(
+                    Q(ends_on__isnull=True)
+                    | Q(ends_on__gte=shift.work_date)
+                ).exists()
+
+                if not belongs:
+                    raise ValidationError(
+                        "このスタッフは選択日の店舗に所属していません。"
+                    )
+
+                shift.schedule = require_draft_month(
+                    shift.store,
+                    shift.work_date,
+                )
+                shift.status = 1
+                shift.save()
+
+                for target_day in {
+                    value[1] for value in targets
+                }:
+                    refresh_day_shortages(
+                        list(editable_stores),
+                        target_day,
+                    )
+
+        except ValidationError as exc:
+            form.add_error(None, " ".join(exc.messages))
+
+        else:
+            messages.success(request, "下書きを保存しました。")
+
+            return redirect(
+                f"{reverse('shift_management:edit_shift')}"
+                f"?date={shift.work_date:%Y-%m-%d}"
+                f"&store={shift.store_id}"
+            )
+
+    # 選択日のシフト
+    day_shifts_query = ShiftAssignment.objects.filter(
+        store__in=editable_stores,
+        work_date=selected_date,
+        status__in=[1, 2],
     )
 
-    # 店舗が選択されている場合だけ絞り込む
-    if selected_store_id:
-        day_shifts = day_shifts.filter(
-            store_id=selected_store_id
+    if selected_store:
+        day_shifts_query = day_shifts_query.filter(
+            store=selected_store
         )
 
-    day_shifts = day_shifts.select_related(
-        "staff"
-    ).order_by("id")
+    day_shifts = list(
+        day_shifts_query.select_related(
+            "staff", "shift_time_slot"
+        ).order_by("id")
+    )
 
-    PIXELS_PER_HOUR = 24
+    staffs = list(staff_queryset)
 
-    
-    # 選択中の店舗を取得
-    if selected_store_id:
-        selected_store = stores.filter(
-            id=selected_store_id
-        ).first()
-    else:
-        selected_store = None
-
-    # 店舗ごとの営業時間を分単位に変換
+    # グラフ範囲：既存の24時以降の表示方法を維持
     store_hours = []
 
     for store in stores:
-        opening_minutes = (
-            store.opening_time.hour * 60
-            + store.opening_time.minute
-        )
+        opening = minute(store.opening_time)
+        closing = minute(store.closing_time)
 
-        closing_minutes = (
-            store.closing_time.hour * 60
-            + store.closing_time.minute
-        )
-
-        # 閉店が開店以前なら24時以降として扱う
-        if closing_minutes <= opening_minutes:
-            closing_minutes += 24 * 60
+        if closing <= opening:
+            closing += 1440
 
         store_hours.append({
             "id": store.id,
-            "opening": opening_minutes,
-            "closing": closing_minutes,
+            "opening": opening,
+            "closing": closing,
         })
 
-    # 選択店舗があればその営業時間を使用
-    if selected_store:
-        hours_data = next(
-            (
-                item for item in store_hours
-                if item["id"] == selected_store.id
-            ),
-            None
-        )
-    else:
-        hours_data = None
+    hours_data = next(
+        (
+            item for item in store_hours
+            if selected_store and item["id"] == selected_store.id
+        ),
+        None,
+    )
 
     if hours_data:
-        chart_start_minutes = hours_data["opening"]
-        chart_end_minutes = hours_data["closing"]
-
+        chart_start = hours_data["opening"]
+        chart_end = hours_data["closing"]
     elif store_hours:
-        # すべての店舗の営業時間を含める
-        chart_start_minutes = min(
-            item["opening"] for item in store_hours
-        )
-        chart_end_minutes = max(
-            item["closing"] for item in store_hours
-        )
-
+        chart_start = min(item["opening"] for item in store_hours)
+        chart_end = max(item["closing"] for item in store_hours)
     else:
-        chart_start_minutes = 6 * 60
-        chart_end_minutes = 24 * 60
+        chart_start = 6 * 60
+        chart_end = 24 * 60
 
-    # 開店1時間前・閉店1時間後
-    CHART_START_HOUR = (chart_start_minutes - 60) // 60
-    CHART_END_HOUR = (chart_end_minutes + 60 + 59) // 60
-
+    pixels_per_hour = 24
+    chart_start_hour = (chart_start - 60) // 60
+    chart_end_hour = (chart_end + 60 + 59) // 60
     chart_height = (
-        CHART_END_HOUR - CHART_START_HOUR
-    ) * PIXELS_PER_HOUR
+        chart_end_hour - chart_start_hour
+    ) * pixels_per_hour
 
     chart_hours = [
         {
             "label": f"{hour:02d}:00",
-            "top": (hour - CHART_START_HOUR) * PIXELS_PER_HOUR,
+            "top": (
+                hour - chart_start_hour
+            ) * pixels_per_hour,
         }
         for hour in range(
-            CHART_START_HOUR,
-            CHART_END_HOUR + 1
+            chart_start_hour,
+            chart_end_hour + 1,
         )
-    ]
-    existing_shift_pairs = [
-        {
-            "staff_id": shift["staff_id"],
-            "date": shift["work_date"].isoformat(),
-        }
-        for shift in ShiftAssignment.objects.values(
-            "staff_id", "work_date"
-        ).distinct()
     ]
 
     chart_staffs = []
@@ -615,46 +698,36 @@ def edit_shift(request):
             shift for shift in day_shifts
             if shift.staff_id == staff.id
         ]
-
         bars = []
 
         for shift in staff_shifts:
-            if not shift.start_time or not shift.end_time:
+            if shift.start_time is None or shift.end_time is None:
                 continue
 
-            start_minutes = (
-                shift.start_time.hour * 60
-                + shift.start_time.minute
-            )
+            start = minute(shift.start_time)
+            end = minute(shift.end_time)
 
-            end_minutes = (
-                shift.end_time.hour * 60
-                + shift.end_time.minute
-            )
+            if end <= start:
+                end += 1440
 
-            # 日付をまたぐ勤務を24時以降として扱う
-            if end_minutes <= start_minutes:
-                end_minutes += 24 * 60
-
-            # 深夜0時以降の勤務を24時以降に配置
             if (
-                CHART_END_HOUR > 24
-                and start_minutes < CHART_START_HOUR * 60
+                chart_end_hour > 24
+                and start < chart_start_hour * 60
             ):
-                start_minutes += 24 * 60
-                end_minutes += 24 * 60
+                start += 1440
+                end += 1440
 
-            # 勤務バーの位置と高さ
             top = (
-                start_minutes - CHART_START_HOUR * 60
-            ) * PIXELS_PER_HOUR / 60
-
+                start - chart_start_hour * 60
+            ) * pixels_per_hour / 60
             height = (
-                end_minutes - start_minutes
-            ) * PIXELS_PER_HOUR / 60
+                end - start
+            ) * pixels_per_hour / 60
 
             visible_top = max(0, top)
-            visible_bottom = min(chart_height, top + height)
+            visible_bottom = min(
+                chart_height, top + height
+            )
 
             if visible_bottom <= visible_top:
                 continue
@@ -662,39 +735,32 @@ def edit_shift(request):
             bars.append({
                 "id": shift.id,
                 "date": shift.work_date,
-                "start": shift.start_time.strftime("%H:%M"),
-                "end": shift.end_time.strftime("%H:%M"),
+                "start": time_text(shift.start_time),
+                "end": time_text(shift.end_time, end=True),
                 "top": round(visible_top, 2),
                 "height": round(
                     visible_bottom - visible_top, 2
                 ),
             })
 
-        # スタッフ単位の開始時間・登録順
-        first_start = min(
-            (
-                shift.start_time.hour * 60
-                + shift.start_time.minute
-                for shift in staff_shifts
-                if shift.start_time
-            ),
-            default=9999,
-        )
-
-        first_order = min(
-            (shift.id for shift in staff_shifts),
-            default=999999,
-        )
-
         chart_staffs.append({
             "staff": staff,
             "color": staff.color or "#b9d7f5",
             "bars": bars,
-            "sort_start": first_start,
-            "sort_order": first_order,
+            "sort_start": min(
+                (
+                    minute(shift.start_time)
+                    for shift in staff_shifts
+                    if shift.start_time is not None
+                ),
+                default=9999,
+            ),
+            "sort_order": min(
+                (shift.id for shift in staff_shifts),
+                default=999999,
+            ),
         })
 
-    # 初期表示は開始時間順
     chart_staffs.sort(
         key=lambda item: (
             item["sort_start"],
@@ -702,35 +768,232 @@ def edit_shift(request):
         )
     )
 
-    # 前月・翌月の移動先
-    if display_month == 1:
-        prev_month_date = date(display_year - 1, 12, 1)
-    else:
-        prev_month_date = date(display_year, display_month - 1, 1)
-
-    if display_month == 12:
-        next_month_date = date(display_year + 1, 1, 1)
-    else:
-        next_month_date = date(display_year, display_month + 1, 1)
-
-    
-    context.update({
-        "chart_hours": chart_hours,
-        "chart_staffs": chart_staffs,
-        "display_day": display_day,
-        "selected_shift": selected_shift,
-        "prev_month_date": prev_month_date,
-        "next_month_date": next_month_date,
-        "chart_height": chart_height,
-        "selected_store_id": selected_store_id,
-        "existing_shift_pairs": existing_shift_pairs,
-        
-    })
-
-    return render(
-        request,'shift_management/edit_shift.html',context
+    # 不足日の表示
+    shortages = ShiftShortage.objects.filter(
+        store__in=editable_stores,
+        target_date__year=year,
+        target_date__month=month,
+        assigned_count__lt=F("required_count"),
     )
 
+    if selected_store:
+        shortages = shortages.filter(
+            store=selected_store
+        )
+
+    shortage_days = set(
+        shortages.values_list(
+            "target_date__day", flat=True
+        )
+    )
+
+    day_shortages = list(
+        shortages.filter(
+            target_date=selected_date
+        ).select_related("store", "shift_time_slot")
+    )
+
+    for shortage in day_shortages:
+        shortage.missing_count = (
+            shortage.required_count - shortage.assigned_count
+        )
+
+    # 希望一覧
+    memberships = StaffStoreAssignment.objects.filter(
+        store__in=editable_stores,
+        starts_on__lte=selected_date,
+    ).filter(
+        Q(ends_on__isnull=True)
+        | Q(ends_on__gte=selected_date)
+    )
+
+    if selected_store:
+        memberships = memberships.filter(
+            store=selected_store
+        )
+
+    visible_staff_ids = set(
+        memberships.values_list("staff_id", flat=True)
+    )
+
+    preferences = {
+        preference.submission.staff_id: preference
+        for preference in ShiftPreference.objects.filter(
+            submission__is_latest=True,
+            submission__year=year,
+            submission__month=month,
+            target_date=selected_date,
+        ).select_related(
+            "submission__staff"
+        ).order_by("id")
+    }
+
+    preference_rows = []
+
+    for staff in staffs:
+        if staff.id not in visible_staff_ids or not staff.is_active:
+            continue
+
+        preference = preferences.get(staff.id)
+        assigned = [
+            shift for shift in day_shifts
+            if shift.staff_id == staff.id
+        ]
+
+        wish_text = "未提出"
+        status = "未提出"
+
+        if preference:
+            if not preference.is_available:
+                wish_text = "希望休"
+                status = "相違あり" if assigned else "希望休"
+
+            elif (
+                preference.available_start_time is None
+                or preference.available_end_time is None
+            ):
+                wish_text = "出勤可能（時刻未設定）"
+                status = "要確認"
+
+            else:
+                wish_text = (
+                    time_text(preference.available_start_time)
+                    + "〜"
+                    + time_text(
+                        preference.available_end_time,
+                        end=True,
+                    )
+                )
+                status = "未配置"
+
+                if assigned:
+                    matches = all(
+                        shift.start_time is not None
+                        and shift.end_time is not None
+                        and minute(shift.start_time)
+                        >= minute(preference.available_start_time)
+                        and minute(shift.end_time, end=True)
+                        <= minute(
+                            preference.available_end_time,
+                            end=True,
+                        )
+                        for shift in assigned
+                    )
+                    status = (
+                        "希望どおり" if matches else "相違あり"
+                    )
+
+        preference_rows.append({
+            "staff": staff,
+            "wish_text": wish_text,
+            "status": status,
+        })
+
+    # 下書きの月だけ編集可能
+    states = list(
+        ShiftSchedule.objects.filter(
+            area_id__in=editable_stores.values("area_id"),
+            year=year,
+            month=month,
+        )
+    )
+
+    if selected_store:
+        states = [
+            state for state in states
+            if state.area_id == selected_store.area_id
+        ]
+
+    can_edit_shifts = any(
+        state.status == 2 for state in states
+    )
+
+    if selected_shift:
+        state = next(
+            (
+                state for state in states
+                if state.area_id == selected_shift.store.area_id
+            ),
+            None,
+        )
+        can_edit_shifts = (
+            selected_shift.status == 1
+            and state is not None
+            and state.status == 2
+        )
+
+    # 前月・翌月
+    prev_month_date = (
+        selected_date.replace(day=1)
+        - timedelta(days=1)
+    ).replace(day=1)
+
+    next_month_date = (
+        selected_date.replace(day=1)
+        + timedelta(days=32)
+    ).replace(day=1)
+
+    context = get_calendar_data(year, month, day)
+
+    context.update({
+        "staff_name": manager.name,
+        "year": year,
+        "month": month,
+        "display_day": day,
+        "staffs": staffs,
+        "stores": stores,
+        "timeslots": ShiftTimeSlot.objects.filter(
+            store__in=editable_stores
+        ),
+        "form": form,
+        "selected_shift": selected_shift,
+        "selected_store_id": selected_store_id,
+        "prev_month_date": prev_month_date,
+        "next_month_date": next_month_date,
+        "chart_hours": chart_hours,
+        "chart_staffs": chart_staffs,
+        "chart_height": chart_height,
+        "day_shortages": day_shortages,
+        "can_edit_shifts": can_edit_shifts,
+        "preference_rows": preference_rows,
+        "selected_weekday": [
+            "月", "火", "水", "木", "金", "土", "日"
+        ][selected_date.weekday()],
+        "staff_departure_times": {
+            str(staff.id): staff.last_train_departure_time.strftime("%H:%M")
+            for staff in staffs
+            if staff.last_train_departure_time is not None
+        },
+        "existing_shift_pairs": [
+            {
+                "staff_id": row["staff_id"],
+                "date": row["work_date"].isoformat(),
+            }
+            for row in ShiftAssignment.objects.filter(
+                store__in=editable_stores,
+                status__in=[1, 2],
+            ).values(
+                "staff_id", "work_date"
+            ).distinct()
+        ],
+    })
+
+    context["calendar_weeks"] = [
+        [
+            {
+                "day": number,
+                "shortage": number in shortage_days,
+            }
+            for number in week
+        ]
+        for week in context["weeks"]
+    ]
+
+    return render(
+        request,
+        "shift_management/edit_shift.html",
+        context,
+    )
 def staff_login(request):
     """スタッフログイン画面"""
 
@@ -902,104 +1165,117 @@ def _shift_time(value):
 @manager_required
 @require_POST
 def generate_shift(request):
-    today = timezone.localdate()
-    month_start = (today.replace(day=1) + timedelta(days=32)).replace(day=1)
-    year = month_start.year
-    month = month_start.month
-    month_end = date(year, month, calendar.monthrange(year, month)[1])
+    """選択したエリア・月のシフトを下書きで生成する。"""
+    try:
+        year = int(request.POST["year"])
+        month = int(request.POST["month"])
+        area_id = int(request.POST["area"])
+
+        if not 2000 <= year <= 2100:
+            raise ValueError
+
+        month_start = date(year, month, 1)
+        month_end = date(
+            year,
+            month,
+            calendar.monthrange(year, month)[1],
+        )
+    except (KeyError, ValueError, TypeError):
+        messages.error(
+            request,
+            "作成する年月とエリアを選択してください。",
+        )
+        return redirect(
+            "shift_management:shift_management"
+        )
+
+    destination = (
+        reverse("shift_management:shift_management")
+        + f"?year={year}&month={month}&area={area_id}"
+    )
+
+    def minute(value, end=False):
+        result = value.hour * 60 + value.minute
+        return 1440 if end and result == 0 else result
+
+    def clock(value):
+        if value == 1440:
+            return time(0, 0)
+        return time(value // 60, value % 60)
 
     try:
         with transaction.atomic():
-            # 同じ管理者による生成処理を直列化
-            manager = StaffProfile.objects.select_for_update().get(
+            manager = StaffProfile.objects.get(
                 user=request.user
             )
 
-            scopes = ManagementScope.objects.filter(manager=manager)
-            stores = list(
-                Store.objects.select_for_update().filter(
-                    Q(area_id__in=scopes.values("area_id"))
-                    | Q(id__in=scopes.values("store_id"))
-                ).distinct().order_by("id")
+            area = get_object_or_404(
+                Area, id=area_id
+            )
+            Area.objects.select_for_update().get(
+                pk=area.pk
             )
 
-            if not stores:
-                raise ValueError("担当店舗が設定されていません。")
+            stores = list(
+                controlled_stores(
+                    manager, area
+                ).select_for_update()
+            )
+            store_ids = [
+                store.id for store in stores
+            ]
 
-            store_ids = [store.id for store in stores]
+            schedule = get_month_schedule(
+                area, year, month
+            )
 
-            # 手動登録・確定分を含め、既存データは上書きしない
+            if schedule and schedule.status >= 2:
+                raise ValidationError(
+                    "作成済みです。下書きを削除してから再作成してください。"
+                )
+
             if ShiftAssignment.objects.filter(
                 store_id__in=store_ids,
                 work_date__range=(month_start, month_end),
                 status__in=[1, 2],
             ).exists():
-                raise ValueError(
-                    "対象月にシフトが登録済みです。"
-                    "重複を防ぐため、自動生成を停止しました。"
-                )
-
-            if ShiftShortage.objects.filter(
-                store_id__in=store_ids,
-                target_date__range=(month_start, month_end),
-            ).exists():
-                raise ValueError(
-                    "対象月に不足記録が登録済みです。"
-                    "重複を防ぐため、自動生成を停止しました。"
+                raise ValidationError(
+                    "既存シフトがあります。"
+                    "管理ページで下書きを削除してから作成してください。"
+                    "確定済みのシフトは削除できません。"
                 )
 
             slots = list(
                 ShiftTimeSlot.objects.filter(
                     store_id__in=store_ids,
                     is_active=True,
-                ).select_related("store").order_by("id")
+                ).select_related(
+                    "store"
+                ).order_by("id")
             )
+
             if not slots:
-                raise ValueError("担当店舗に有効なシフト枠がありません。")
+                raise ValidationError(
+                    "有効なシフト枠がありません。"
+                )
 
             for slot in slots:
                 if (
-                    _shift_minutes(slot.end_time, end=True)
-                    <= _shift_minutes(slot.start_time)
+                    minute(slot.end_time, end=True)
+                    <= minute(slot.start_time)
                 ):
-                    raise ValueError(
+                    raise ValidationError(
                         f"{slot.store.name}・{slot.name}："
                         "24:00を超える深夜勤務は今回の対象外です。"
                     )
 
-            rules = list(
-                RequiredStaffingRule.objects.filter(
-                    store_id__in=store_ids,
-                    shift_time_slot_id__in=[slot.id for slot in slots],
-                )
-            )
-            holidays = JPHoliday()
-            default_counts = {"朝番": 1, "昼番": 2, "夜番": 2}
-
-            def required_count(day, slot):
-                # 特定日の設定を最優先
-                exact = [
-                    rule for rule in rules
-                    if rule.store_id == slot.store_id
-                    and rule.shift_time_slot_id == slot.id
-                    and rule.target_date == day
-                ]
-                if len(exact) > 1:
-                    raise ValueError(
-                        f"{day}・{slot.store.name}・{slot.name}："
-                        "特定日の必要人数設定が重複しています。"
-                    )
-                if exact:
-                    return exact[0].required_count
-
-                # 今回指定した通常人数：平日1/2/2、土日祝2/3/3
-                if slot.name not in default_counts:
-                    raise ValueError(
-                        f"{slot.store.name}・{slot.name}："
-                        "必要人数を特定日設定に登録してください。"
-                    )
-                holiday = day.weekday() >= 5 or holidays.is_holiday(day)
-                return default_counts[slot.name] + int(holiday)
+            # 今回の対象エリア・月の不足記録を作り直す
+            ShiftShortage.objects.filter(
+                store_id__in=store_ids,
+                target_date__range=(
+                    month_start, month_end
+                ),
+            ).delete()
 
             preferences = list(
                 ShiftPreference.objects.filter(
@@ -1009,24 +1285,33 @@ def generate_shift(request):
                     submission__status__in=[2, 3],
                     submission__staff__is_active=True,
                     submission__staff__is_trainee=False,
-                    target_date__range=(month_start, month_end),
+                    target_date__range=(
+                        month_start, month_end
+                    ),
                     is_available=True,
-                ).select_related("submission__staff")
+                ).select_related(
+                    "submission__staff"
+                )
             )
 
             preferences_by_day = defaultdict(list)
             seen = set()
+
             for preference in preferences:
                 key = (
                     preference.submission.staff_id,
                     preference.target_date,
                 )
+
                 if key in seen:
-                    raise ValueError(
+                    raise ValidationError(
                         "同じスタッフ・日付の最新希望が重複しています。"
                     )
+
                 seen.add(key)
-                preferences_by_day[preference.target_date].append(preference)
+                preferences_by_day[
+                    preference.target_date
+                ].append(preference)
 
             memberships = list(
                 StaffStoreAssignment.objects.filter(
@@ -1038,67 +1323,96 @@ def generate_shift(request):
                 )
             )
 
-            # 月初の週全体と月末後の連勤も確認
-            history_start = month_start - timedelta(
-                days=max(5, month_start.weekday())
-            )
-            history_end = month_end + timedelta(days=5)
-
-            history = ShiftAssignment.objects.filter(
-                work_date__range=(history_start, history_end),
-                status__in=[1, 2],
-            ).select_related("shift_time_slot")
-
             working_days = defaultdict(set)
             weekly_minutes = defaultdict(int)
             monthly_minutes = defaultdict(int)
 
-            for shift in history:
-                if shift.staff_id is None:
-                    continue
+            # 月初の週全体と、月末の連勤を確認
+            history_start = month_start - timedelta(
+                days=max(
+                    5, month_start.weekday()
+                )
+            )
+            history_end = month_end + timedelta(
+                days=5
+            )
 
-                working_days[shift.staff_id].add(shift.work_date)
+            history = ShiftAssignment.objects.filter(
+                work_date__range=(
+                    history_start, history_end
+                ),
+                status__in=[1, 2],
+                staff__isnull=False,
+            ).select_related("shift_time_slot")
+
+            for shift in history:
+                working_days[shift.staff_id].add(
+                    shift.work_date
+                )
 
                 start = shift.start_time
                 end = shift.end_time
+
                 if shift.shift_time_slot:
                     if start is None:
                         start = shift.shift_time_slot.start_time
                     if end is None:
                         end = shift.shift_time_slot.end_time
+
                 if start is None or end is None:
-                    raise ValueError(
+                    raise ValidationError(
                         f"既存シフトID {shift.id} の勤務時刻が未設定です。"
                     )
 
                 duration = (
-                    _shift_minutes(end, end=True) - _shift_minutes(start)
+                    minute(end, end=True)
+                    - minute(start)
                 )
+
                 if duration <= 0:
-                    raise ValueError(
-                        f"既存シフトID {shift.id} の時刻を確認してください。"
+                    raise ValidationError(
+                        f"既存シフトID {shift.id}："
+                        "24:00を超える勤務は今回の対象外です。"
                     )
 
-                duration = max(0, duration - shift.break_minutes)
+                duration = max(
+                    0,
+                    duration - shift.break_minutes,
+                )
+
                 week = shift.work_date - timedelta(
                     days=shift.work_date.weekday()
                 )
-                weekly_minutes[shift.staff_id, week] += duration
+
+                weekly_minutes[
+                    shift.staff_id, week
+                ] += duration
+
                 if month_start <= shift.work_date <= month_end:
-                    monthly_minutes[shift.staff_id] += duration
+                    monthly_minutes[
+                        shift.staff_id
+                    ] += duration
 
             def candidates_for(day, slot):
                 result = []
-                start = _shift_minutes(slot.start_time)
-                end = _shift_minutes(slot.end_time, end=True)
-                week = day - timedelta(days=day.weekday())
+                start = minute(slot.start_time)
+                end = minute(
+                    slot.end_time, end=True
+                )
+                week = day - timedelta(
+                    days=day.weekday()
+                )
                 week_end = week + timedelta(days=6)
 
                 member_ids = {
-                    item.staff_id for item in memberships
+                    item.staff_id
+                    for item in memberships
                     if item.store_id == slot.store_id
                     and item.starts_on <= day
-                    and (item.ends_on is None or item.ends_on >= day)
+                    and (
+                        item.ends_on is None
+                        or item.ends_on >= day
+                    )
                 }
 
                 for preference in preferences_by_day[day]:
@@ -1107,8 +1421,10 @@ def generate_shift(request):
 
                     if staff.id not in member_ids:
                         continue
+
                     if staff.joined_on > day or day in days:
                         continue
+
                     if (
                         preference.available_start_time is None
                         or preference.available_end_time is None
@@ -1116,20 +1432,28 @@ def generate_shift(request):
                         continue
 
                     actual_end = end
+
                     if staff.last_train_departure_time is not None:
                         actual_end = min(
                             end,
-                            _shift_minutes(
-                                staff.last_train_departure_time, end=True
+                            minute(
+                                staff.last_train_departure_time,
+                                end=True,
                             ),
                         )
 
-                    if actual_end <= start or end - actual_end > 15:
-                        continue
                     if (
-                        _shift_minutes(preference.available_start_time) > start
-                        or _shift_minutes(
-                            preference.available_end_time, end=True
+                        actual_end <= start
+                        or end - actual_end > 15
+                    ):
+                        continue
+
+                    if (
+                        minute(preference.available_start_time)
+                        > start
+                        or minute(
+                            preference.available_end_time,
+                            end=True,
                         ) < actual_end
                     ):
                         continue
@@ -1142,118 +1466,190 @@ def generate_shift(request):
                         > staff.weekly_max_minutes
                     ):
                         continue
+
                     if (
                         staff.monthly_max_minutes is not None
                         and monthly_minutes[staff.id] + duration
                         > staff.monthly_max_minutes
                     ):
                         continue
-                    if sum(week <= value <= week_end for value in days) >= 5:
+
+                    if sum(
+                        week <= value <= week_end
+                        for value in days
+                    ) >= 5:
                         continue
 
                     consecutive = 1
+
                     for direction in (-1, 1):
-                        check = day + timedelta(days=direction)
+                        check = day + timedelta(
+                            days=direction
+                        )
                         while check in days:
                             consecutive += 1
-                            check += timedelta(days=direction)
+                            check += timedelta(
+                                days=direction
+                            )
+
                     if consecutive > 5:
                         continue
 
-                    result.append((staff, actual_end, duration))
+                    result.append(
+                        (staff, actual_end, duration)
+                    )
 
-                result.sort(key=lambda item: (
-                    not item[0].shift_priority,
-                    monthly_minutes[item[0].id],
-                    item[0].id,
-                ))
+                result.sort(
+                    key=lambda item: (
+                        not item[0].shift_priority,
+                        monthly_minutes[item[0].id],
+                        item[0].id,
+                    )
+                )
                 return result
+
+            if schedule is None:
+                schedule = ShiftSchedule.objects.create(
+                    area=area,
+                    year=year,
+                    month=month,
+                    status=1,
+                    created_by=manager,
+                )
 
             generated = 0
             shortage_slots = 0
             shortage_people = 0
 
-            for number in range(1, month_end.day + 1):
-                day = date(year, month, number)
-                week = day - timedelta(days=day.weekday())
+            for number in range(
+                1, month_end.day + 1
+            ):
+                day = date(
+                    year, month, number
+                )
+                week = day - timedelta(
+                    days=day.weekday()
+                )
 
-                # 候補が少ない枠を先に処理。同条件なら夜番を優先
+                # 候補が少ない枠を先に配置
                 daily_slots = sorted(
                     slots,
                     key=lambda slot: (
                         len(candidates_for(day, slot))
-                        - required_count(day, slot),
-                        -_shift_minutes(slot.end_time, end=True),
+                        - staffing_count(day, slot),
+                        -minute(
+                            slot.end_time, end=True
+                        ),
                         slot.id,
                     ),
                 )
 
                 for slot in daily_slots:
-                    required = required_count(day, slot)
+                    required = staffing_count(
+                        day, slot
+                    )
+
                     if required == 0:
                         continue
 
-                    candidates = candidates_for(day, slot)
-                    end = _shift_minutes(slot.end_time, end=True)
+                    candidates = candidates_for(
+                        day, slot
+                    )
+                    end = minute(
+                        slot.end_time, end=True
+                    )
 
                     full = [
-                        item for item in candidates if item[1] == end
+                        item for item in candidates
+                        if item[1] == end
                     ]
                     early = [
-                        item for item in candidates if item[1] < end
+                        item for item in candidates
+                        if item[1] < end
                     ]
 
                     selected = full[:required]
 
-                    # 終了まで残る人がいる場合だけ早退者を配置
+                    # 終了まで残る人がいる場合だけ早退者を追加
                     if selected:
                         selected.extend(
-                            early[:required - len(selected)]
+                            early[
+                                :required - len(selected)
+                            ]
                         )
 
                     for staff, actual_end, duration in selected:
                         ShiftAssignment.objects.create(
+                            schedule=schedule,
                             staff=staff,
                             store=slot.store,
                             work_date=day,
                             shift_time_slot=slot,
                             start_time=slot.start_time,
-                            end_time=_shift_time(actual_end),
+                            end_time=clock(actual_end),
                             status=1,
                             is_training=False,
                             created_by=manager,
                         )
+
                         working_days[staff.id].add(day)
-                        weekly_minutes[staff.id, week] += duration
-                        monthly_minutes[staff.id] += duration
+                        weekly_minutes[
+                            staff.id, week
+                        ] += duration
+                        monthly_minutes[
+                            staff.id
+                        ] += duration
                         generated += 1
 
-                    missing = required - len(selected)
+                    missing = (
+                        required - len(selected)
+                    )
+
                     if missing:
                         ShiftShortage.objects.create(
+                            schedule=schedule,
                             store=slot.store,
                             target_date=day,
                             shift_time_slot=slot,
                             required_count=required,
                             assigned_count=len(selected),
-                            note="自動生成：希望・退勤・勤務上限などで配置不足",
+                            note=(
+                                "自動生成：希望・退勤・"
+                                "勤務上限などで配置不足"
+                            ),
                         )
+
                         shortage_slots += 1
                         shortage_people += missing
 
-    except ValueError as exc:
-        messages.error(request, str(exc))
-        return redirect("shift_management:manager_main")
+            # 配置0件でも「生成済み」にする
+            schedule.status = 2
+            schedule.generated_at = timezone.now()
+            schedule.published_at = None
+            schedule.save(
+                update_fields=[
+                    "status",
+                    "generated_at",
+                    "published_at",
+                ]
+            )
+
+    except (ValueError, ValidationError) as exc:
+        text = (
+            " ".join(exc.messages)
+            if isinstance(exc, ValidationError)
+            else str(exc)
+        )
+        messages.error(request, text)
+        return redirect(destination)
 
     messages.success(
         request,
         f"{year}年{month}月：下書き{generated}件を作成しました。"
         f"不足{shortage_slots}枠・延べ{shortage_people}人です。",
     )
-    return redirect(
-        f"/edit_shift/?date={month_start:%Y-%m-%d}"
-    )    
 
+    return redirect(destination)
 
 
 def message(request):
