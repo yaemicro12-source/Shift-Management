@@ -100,9 +100,7 @@
                             href="?date={{ year }}-{{ month|stringformat:'02d' }}-{{ cell.day|stringformat:'02d' }}{% if selected_store_id %}&store={{ selected_store_id }}{% endif %}"
                         >
                             {{ cell.day }}
-                            {% if cell.shortage %}
-                            <span class="edit-shortage-badge">不足</span>
-                            {% endif %}
+                            
                         </a>
                         {% endif %}
                     </td>

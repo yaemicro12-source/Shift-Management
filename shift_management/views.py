@@ -28,10 +28,12 @@ from collections import defaultdict
 
 
 from .shift_controls import (
+    allowed_stores,
     controlled_stores,
     get_month_schedule,
     require_draft_month,
     refresh_day_shortages,
+    required_count as staffing_count,
 )
 
 def get_evaluation_areas(evaluator, year, month):
