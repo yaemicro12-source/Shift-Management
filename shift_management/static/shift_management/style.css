@@ -2769,3 +2769,6 @@ div.settings-menu-item {
         font-size: 12px;
     }
 }
+#training-days-field[hidden] {
+    display: none;
+}

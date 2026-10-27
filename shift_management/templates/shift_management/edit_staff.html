@@ -116,7 +116,7 @@
                     >
                     <span>研修中</span>
                 </label>
-                    <div class="add-staff-field">
+                    <div class="add-staff-field" id="training-days-field" hidden>
                     <label for="{{ form.training_days_per_week.id_for_label }}">
                         研修の週あたり目標日数
                     </label>
@@ -425,5 +425,17 @@
         </form>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const checkbox = document.getElementById("is_trainee");
+    const field = document.getElementById("training-days-field");
 
+    function updateTrainingField() {
+        field.hidden = !checkbox.checked;
+    }
+
+    checkbox.addEventListener("change", updateTrainingField);
+    updateTrainingField();
+});
+</script>
 {% endblock %}

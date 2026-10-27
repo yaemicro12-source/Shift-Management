@@ -140,6 +140,9 @@ class StaffEditForm(forms.ModelForm):
             "probation_end_date",
             "annual_income_limit",
             "desired_monthly_minutes",
+            "is_trainee",
+            "training_days_per_week",
+            "color",
         ]
 
 class StaffLoginForm(forms.Form):
