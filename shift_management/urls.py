@@ -7,6 +7,7 @@ from . import views
 from .shift_controls import shift_management_page
 from .request_popup import respond_request
 from .messaging import message_page
+from .day_views import day_shift_detail
 
 app_name = 'shift_management'
 
@@ -79,5 +80,10 @@ urlpatterns = [
         "message/<int:staff_id>/",
         message_page,
         name="conversation",
+    ),
+    path(
+        "shifts/day/<int:year>/<int:month>/<int:day>/",
+        day_shift_detail,
+        name="day_shift_detail",
     ),
 ]

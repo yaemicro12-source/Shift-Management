@@ -326,7 +326,6 @@
                     <span class="chat-contact-top">
                         <strong>
                             {{ contact.staff.name }}
-                            {{ contact.staff.firstname }}
                         </strong>
                         <time>
                             {{ contact.latest|date:"n/j H:i" }}
@@ -377,7 +376,7 @@
                href="{% url 'shift_management:message' %}">
                 一覧へ
             </a>
-            <strong>{{ peer.name }} {{ peer.firstname }}</strong>
+            <strong>{{ peer.name }} </strong>
         </header>
 
         <div class="chat-timeline" id="chat-timeline">

@@ -103,4 +103,103 @@ def submit_evaluation(evaluation, item_scores, comment=""):
         ]
     )
 
+
     return total_score
+
+def generation_evaluation_scores(area, staff_ids, year, month):
+    """自動生成時に利用可能な直近評価を取得する。"""
+    from datetime import date
+    from django.db.models import Avg, Max
+    from .models import EvaluationSetting, EvaluationAdjustment
+
+    staff_ids = set(staff_ids)
+    neutral = Decimal("3.00")
+
+    if not staff_ids:
+        return {}
+
+    if not EvaluationSetting.objects.filter(
+        area=area,
+        is_enabled=True,
+    ).exists():
+        return {
+            staff_id: neutral
+            for staff_id in staff_ids
+        }
+
+    cutoff = min(
+        date(year, month, 1),
+        timezone.localdate().replace(day=1),
+    )
+    now = timezone.now()
+
+    rows = (
+        StaffEvaluation.objects.filter(
+            area=area,
+            staff_id__in=staff_ids,
+            staff__role=1,
+            staff__is_position_holder=False,
+            submitted_at__isnull=False,
+            submitted_at__lte=now,
+            total_score__gte=1,
+            total_score__lte=5,
+        )
+        .filter(
+            Q(year__lt=cutoff.year)
+            | Q(year=cutoff.year, month__lt=cutoff.month)
+        )
+        .values("staff_id", "year", "month")
+        .annotate(
+            score=Avg("total_score"),
+            latest=Max("submitted_at"),
+        )
+        .order_by("staff_id", "-year", "-month")
+    )
+
+    scores = {}
+    submitted = {}
+
+    for row in rows:
+        staff_id = row["staff_id"]
+
+        if staff_id not in scores:
+            scores[staff_id] = Decimal(str(row["score"]))
+            submitted[staff_id] = row["latest"]
+
+    # 最新評価の提出後に行った補正があれば優先する
+    seen = set()
+
+    adjustments = EvaluationAdjustment.objects.filter(
+        staff_id__in=staff_ids,
+        staff__role=1,
+        staff__is_position_holder=False,
+        adjusted_at__lte=now,
+        new_score__gte=1,
+        new_score__lte=5,
+    ).order_by("staff_id", "-adjusted_at", "-pk")
+
+    for row in adjustments:
+        if row.staff_id in seen:
+            continue
+
+        seen.add(row.staff_id)
+        latest = submitted.get(row.staff_id)
+
+        if latest is None or row.adjusted_at >= latest:
+            scores[row.staff_id] = row.new_score
+
+    # 未評価者を0点扱いにしない
+    # 評価がある候補者の平均、全員未評価なら3点とする
+    if scores:
+        neutral = (
+            sum(scores.values(), Decimal("0"))
+            / len(scores)
+        )
+
+    return {
+        staff_id: scores.get(staff_id, neutral).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+        for staff_id in staff_ids
+    }

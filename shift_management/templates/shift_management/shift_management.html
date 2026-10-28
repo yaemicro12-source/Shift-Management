@@ -4,194 +4,579 @@
 {% block title %}シフト作成・管理{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+<link rel="stylesheet"
+      href="{% static 'shift_management/style.css' %}">
+
+<style>
+    .schedule-page .schedule-card {
+        margin-bottom: 20px;
+        padding: 24px;
+    }
+
+    .schedule-page .schedule-filter {
+        display: grid;
+        grid-template-columns: minmax(180px, 2fr) minmax(180px, 2fr) auto;
+        align-items: end;
+        gap: 14px;
+    }
+
+    .schedule-page .edit-field {
+        margin-bottom: 0;
+    }
+
+    .schedule-page .schedule-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .schedule-page .schedule-heading h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.6;
+    }
+
+    .schedule-page .schedule-state {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 20px;
+        background: #edf2f8;
+        color: #65758a;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .schedule-page .schedule-state-2 {
+        background: #eaf2fc;
+        color: #3478c7;
+    }
+
+    .schedule-page .schedule-state-3,
+    .schedule-page .schedule-state-4 {
+        background: #eaf6ef;
+        color: #39825b;
+    }
+
+    .schedule-page .schedule-stats {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .schedule-page .schedule-stat {
+        padding: 18px;
+        border: 1px solid #edf0f3;
+        border-radius: 8px;
+        background: #f7f9fc;
+    }
+
+    .schedule-page .schedule-stat-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #777;
+        font-size: 12px;
+    }
+
+    .schedule-page .schedule-stat-value {
+        color: #34465e;
+        font-size: 25px;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
+    .schedule-page .schedule-stat-value small {
+        margin-left: 5px;
+        font-size: 12px;
+        font-weight: 400;
+        color: #777;
+    }
+
+    .schedule-page .schedule-stat-shortage .schedule-stat-value {
+        color: #bd555b;
+    }
+
+    .schedule-page .schedule-note {
+        margin: 0 0 18px;
+        color: #777;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+
+    .schedule-page .schedule-notice {
+        margin-bottom: 18px;
+        padding: 13px 16px;
+        border: 1px solid #f0e3cc;
+        border-radius: 8px;
+        background: #fffaf2;
+        color: #896532;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+
+    .schedule-page .schedule-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .schedule-page .schedule-button,
+    .schedule-page .schedule-button:visited {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 10px 18px;
+        border: 1px solid #3478c7;
+        border-radius: 6px;
+        background: #3478c7;
+        color: #fff;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .schedule-page .schedule-button:hover {
+        border-color: #2868b0;
+        background: #2868b0;
+    }
+
+    .schedule-page .schedule-button-outline,
+    .schedule-page .schedule-button-outline:visited {
+        border-color: #cbd8e8;
+        background: #fff;
+        color: #3478c7;
+    }
+
+    .schedule-page .schedule-button-outline:hover {
+        background: #f3f8ff;
+    }
+
+    .schedule-page .schedule-button-danger,
+    .schedule-page .schedule-button-danger:visited {
+        border-color: #d95c63;
+        background: #fff;
+        color: #d95c63;
+    }
+
+    .schedule-page .schedule-button-danger:hover {
+        background: #fff4f4;
+    }
+
+    .schedule-page .schedule-button:focus-visible {
+        outline: 3px solid #b8d2f1;
+        outline-offset: 3px;
+    }
+
+    .schedule-page .schedule-confirm {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin: 0 0 16px;
+        color: #65758a;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .schedule-page .schedule-confirm input {
+        margin-top: 4px;
+        accent-color: #3478c7;
+    }
+
+    .schedule-page .schedule-delete {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid #edf0f3;
+    }
+
+    .schedule-page .schedule-delete p {
+        margin: 0;
+        color: #777;
+        font-size: 12px;
+        line-height: 1.7;
+    }
+
+    .schedule-page .schedule-table-wrap {
+        overflow-x: auto;
+        border: 1px solid #e5e8ed;
+        border-radius: 8px;
+    }
+
+    .schedule-page .schedule-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: #444;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .schedule-page .schedule-table th {
+        padding: 13px 16px;
+        background: #f7f9fc;
+        color: #777;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .schedule-page .schedule-table td {
+        padding: 15px 16px;
+        border-top: 1px solid #edf0f3;
+        background: #fff;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .schedule-page .schedule-table tbody tr:hover td {
+        background: #fafcff;
+    }
+
+    .schedule-page .schedule-table .schedule-button {
+        min-height: 34px;
+        padding: 6px 11px;
+        font-size: 12px;
+    }
+
+    .schedule-page .schedule-shortage {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: #fff0f1;
+        color: #bd555b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .schedule-page .schedule-empty {
+        padding: 30px 16px;
+        color: #777;
+        font-size: 13px;
+        line-height: 1.8;
+        text-align: center;
+        white-space: normal;
+    }
+
+    @media (max-width: 700px) {
+        .schedule-page .schedule-card {
+            padding: 18px;
+        }
+
+        .schedule-page .schedule-filter {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .schedule-page .schedule-area-field {
+            grid-column: 1 / -1;
+        }
+
+        .schedule-page .schedule-filter > button {
+            grid-column: 1 / -1;
+        }
+
+        .schedule-page .schedule-stats {
+            gap: 8px;
+        }
+
+        .schedule-page .schedule-stat {
+            padding: 14px 10px;
+        }
+
+        .schedule-page .schedule-stat-value {
+            font-size: 22px;
+        }
+
+        .schedule-page .schedule-delete {
+            align-items: stretch;
+            flex-direction: column;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="staff-page">
-    <h1>シフト作成・管理</h1>
+<div class="edit-page schedule-page">
+    <h1 class="edit-page-title">シフト作成・管理</h1>
 
-    <section class="staff-card workflow-card">
-        <form method="get" class="workflow-actions">
-            <label>
-                エリア
-                <select name="area" required>
-                    {% for area in areas %}
-                    <option value="{{ area.id }}"
-                        {% if selected_area.id == area.id %}selected{% endif %}>
-                        {{ area.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
+    <section class="edit-card schedule-card">
+        <form method="get" class="schedule-filter">
+    <div class="edit-field schedule-area-field">
+        <label for="schedule-area">エリア</label>
 
-            <label>
-                年
-                <input type="number" name="year"
-                       value="{{ year }}" min="2000" max="2100" required>
-            </label>
+        <select name="area" id="schedule-area" required>
+            {% for area in areas %}
+            <option
+                value="{{ area.id }}"
+                {% if selected_area.id == area.id %}selected{% endif %}
+            >
+                {{ area.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
 
-            <label>
-                月
-                <select name="month">
-                    {% for value in months %}
-                    <option value="{{ value }}"
-                        {% if month == value %}selected{% endif %}>
-                        {{ value }}月
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
+    <div class="edit-field">
+        <label for="schedule-period">対象年月</label>
 
-            <button type="submit" class="workflow-button">表示</button>
-        </form>
+        <select name="period" id="schedule-period" required>
+            {% for item in month_options %}
+            <option
+                value="{{ item.value }}"
+                {% if year == item.year and month == item.month %}selected{% endif %}
+            >
+                {{ item.label }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" class="schedule-button">
+        表示
+    </button>
+</form>
     </section>
 
     {% if selected_area %}
-    <section class="staff-card workflow-card">
-        <h2>
-            {{ selected_area.name }}・{{ year }}年{{ month }}月
-            <span class="workflow-state">{{ state_label }}</span>
-        </h2>
+    <section class="edit-card schedule-card">
+        <div class="schedule-heading">
+            <h2>
+                {{ selected_area.name }}
+                ／ {{ year }}年{{ month }}月
+            </h2>
 
-        <p>
-            下書き {{ draft_count }}件 ／
-            確定 {{ confirmed_count }}件 ／
-            不足 {{ shortages|length }}枠
-        </p>
+            <span class="schedule-state schedule-state-{{ state }}">
+                {{ state_label }}
+            </span>
+        </div>
+
+        <div class="schedule-stats">
+    <div class="schedule-stat {% if shortages %}schedule-stat-shortage{% endif %}">
+        <span class="schedule-stat-label">不足している枠</span>
+        <span class="schedule-stat-value">
+            {{ shortages|length }}<small>枠</small>
+        </span>
+    </div>
+</div>
+
+        <div class="schedule-stats">
+            <div class="schedule-stat {% if shortages %}schedule-stat-shortage{% endif %}">
+                <span class="schedule-stat-label">
+                    不足している枠
+                </span>
+                <span class="schedule-stat-value">
+                    {{ shortages|length }}<small>枠</small>
+                </span>
+            </div>
+        </div>
+
 
         {% if state == 1 %}
-        <p>手動登録・変更は、自動生成後に利用できます。</p>
+        <p class="schedule-note">
+            手動登録・変更は、自動生成後に利用できます。
+        </p>
+
         {% if draft_count %}
-        <p>テスト用の下書きが残っています。削除してから作成してください。</p>
+        <div class="schedule-notice">
+            下書きが残っています。
+            下書きを削除してから自動生成してください。
+        </div>
         {% endif %}
         {% endif %}
 
-        <form method="post" id="workflow-form" class="workflow-actions">
+        <form method="post" id="workflow-form">
             {% csrf_token %}
-            <input type="hidden" name="area" value="{{ selected_area.id }}">
+
+            <input type="hidden"
+                   name="area"
+                   value="{{ selected_area.id }}">
             <input type="hidden" name="year" value="{{ year }}">
             <input type="hidden" name="month" value="{{ month }}">
 
-            {% if can_generate %}
-            <button type="submit" name="action" value="generate"
-                    class="workflow-button"
-                    data-confirm="{{ selected_area.name }}の{{ year }}年{{ month }}月を自動生成しますか？">
-                自動生成
-            </button>
+            {% if state == 2 and shortages %}
+            <label class="schedule-confirm">
+                <input type="checkbox"
+                       name="accept_shortage"
+                       value="yes">
+                <span>不足が残っていることを確認した</span>
+            </label>
             {% endif %}
 
-            <a class="workflow-button secondary"
-               href="{% url 'shift_management:edit_shift' %}?date={{ first|date:'Y-m-d' }}">
-                {% if state == 2 %}シフトを編集{% else %}シフト・希望を確認{% endif %}
-            </a>
-
-            {% if state == 2 %}
-                {% if shortages %}
-                <label class="workflow-acknowledge">
-                    <input type="checkbox" name="accept_shortage" value="yes">
-                    不足が残っていることを確認した
-                </label>
+            <div class="schedule-actions">
+                {% if can_generate %}
+                <button
+                    type="submit"
+                    name="action"
+                    value="generate"
+                    class="schedule-button"
+                    data-confirm="{{ selected_area.name }}の{{ year }}年{{ month }}月を自動生成しますか？"
+                >
+                    自動生成
+                </button>
                 {% endif %}
 
-                <button type="submit" name="action" value="confirm"
-                        class="workflow-button"
-                        data-confirm="{{ year }}年{{ month }}月の下書き{{ draft_count }}件を確定しますか？">
+                <a
+                    class="schedule-button schedule-button-outline"
+                    href="{% url 'shift_management:edit_shift' %}?date={{ first|date:'Y-m-d' }}"
+                >
+                    {% if state == 2 %}
+                        シフトを編集
+                    {% else %}
+                        シフト・希望を確認
+                    {% endif %}
+                </a>
+
+                {% if state == 2 %}
+                <button
+                    type="submit"
+                    name="action"
+                    value="confirm"
+                    class="schedule-button"
+                    data-confirm="{{ year }}年{{ month }}月の下書き{{ draft_count }}件を確定しますか？"
+                >
                     下書きを確定
                 </button>
-            {% endif %}
+                {% endif %}
 
-            {% if state == 3 %}
-            <button type="submit" name="action" value="publish"
-                    class="workflow-button"
-                    data-confirm="{{ year }}年{{ month }}月のシフトをスタッフに公開しますか？">
-                スタッフに公開
-            </button>
-            {% endif %}
+                {% if state == 3 %}
+                <button
+                    type="submit"
+                    name="action"
+                    value="publish"
+                    class="schedule-button"
+                    data-confirm="{{ year }}年{{ month }}月のシフトをスタッフに公開しますか？"
+                >
+                    スタッフに公開
+                </button>
+                {% endif %}
+            </div>
 
             {% if can_delete %}
-            <button type="submit" name="action" value="delete"
-                    class="workflow-button danger"
-                    data-confirm="{{ selected_area.name }}の{{ year }}年{{ month }}月の下書き{{ draft_count }}件と不足記録を削除しますか？ 勤務希望は残ります。">
-                下書きを削除
-            </button>
+            <div class="schedule-delete">
+                <p>
+                    下書きを削除すると、もう一度自動生成できます。<br>
+                    スタッフの希望シフトは残ります。
+                </p>
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="delete"
+                    class="schedule-button schedule-button-danger"
+                    data-confirm="{{ selected_area.name }}の{{ year }}年{{ month }}月の下書き{{ draft_count }}件と不足記録を削除しますか？ 勤務希望は残ります。"
+                >
+                    下書きを削除
+                </button>
+            </div>
             {% endif %}
         </form>
     </section>
 
-    <section class="staff-card workflow-card">
-    <h2>不足している日・シフト枠</h2>
+    <section class="edit-card schedule-card">
+        <div class="schedule-heading">
+            <h2>不足している日・シフト枠</h2>
+        </div>
 
-    <div class="shortage-table-scroll">
-        <table class="shortage-table">
-            <thead>
-                <tr>
-                    <th>日付</th>
-                    <th>店舗</th>
-                    <th>シフト枠</th>
-                    <th>配置／必要</th>
-                    <th>不足</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
+        <p class="schedule-note">
+            配置を確認し、不足している枠から出勤依頼を送れます。
+            出勤依頼は下書きの状態で利用できます。
+        </p>
 
-            <tbody>
-                {% for row in shortages %}
-                <tr>
-                    <td>{{ row.target_date|date:"n/j" }}</td>
-                    <td>{{ row.store.name }}</td>
-                    <td>{{ row.shift_time_slot.name }}</td>
-                    <td>
-                        {{ row.assigned_count }}／{{ row.required_count }}人
-                    </td>
-                    <td>
-                        <span class="shortage-count">
-                            {{ row.missing_count }}人
-                        </span>
-                    </td>
-                    <td>
-                        <div class="shortage-row-actions">
-                            <a class="shortage-action"
-                               href="{% url 'shift_management:edit_shift' %}?date={{ row.target_date|date:'Y-m-d' }}&store={{ row.store_id }}">
-                                配置を見る
-                            </a>
+        <div class="schedule-table-wrap">
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th scope="col">日付</th>
+                        <th scope="col">店舗</th>
+                        <th scope="col">シフト枠</th>
+                        <th scope="col">配置／必要</th>
+                        <th scope="col">不足</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
 
-                            {% if state == 2 %}
-                            <a class="shortage-action primary"
-                               href="{% url 'shift_management:shortage_request' row.id %}">
-                                出勤依頼
-                            </a>
+                <tbody>
+                    {% for row in shortages %}
+                    <tr>
+                        <td>{{ row.target_date|date:"n/j（D）" }}</td>
+                        <td>{{ row.store.name }}</td>
+                        <td>{{ row.shift_time_slot.name }}</td>
+                        <td>
+                            {{ row.assigned_count }}／{{ row.required_count }}人
+                        </td>
+                        <td>
+                            <span class="schedule-shortage">
+                                {{ row.missing_count }}人不足
+                            </span>
+                        </td>
+                        <td>
+                            <div class="schedule-actions">
+                                <a
+                                    class="schedule-button schedule-button-outline"
+                                    href="{% url 'shift_management:edit_shift' %}?date={{ row.target_date|date:'Y-m-d' }}&store={{ row.store_id }}"
+                                >
+                                    配置を見る
+                                </a>
+
+                                {% if state == 2 %}
+                                <a
+                                    class="schedule-button"
+                                    href="{% url 'shift_management:shortage_request' row.id %}"
+                                >
+                                    出勤依頼
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="schedule-empty">
+                            {% if state == 1 %}
+                                自動生成後に不足している枠が表示されます。
+                            {% else %}
+                                不足している枠はありません。
                             {% endif %}
-                        </div>
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 
-                {% empty %}
-                <tr>
-                    <td colspan="6">
-                        不足記録はありません。
-                        未作成の場合は生成後に表示します。
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
     {% else %}
-    <p>担当店舗がありません。</p>
+    <section class="edit-card schedule-card">
+        <p class="schedule-empty">担当店舗がありません。</p>
+    </section>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
-document.getElementById("workflow-form")?.addEventListener(
-    "submit",
-    function (event) {
-        const message = event.submitter?.dataset.confirm;
-        if (message && !confirm(message)) {
-            event.preventDefault();
+    document.getElementById("workflow-form")?.addEventListener(
+        "submit",
+        function (event) {
+            const message = event.submitter?.dataset.confirm;
+
+            if (message && !window.confirm(message)) {
+                event.preventDefault();
+            }
         }
-    }
-);
+    );
 </script>
 {% endblock %}

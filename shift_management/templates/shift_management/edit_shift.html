@@ -209,10 +209,17 @@
                             data-staff-id="{{ item.staff.id }}"
                             data-start="{{ item.sort_start }}"
                             data-order="{{ item.sort_order }}"
+                            data-store-order="{{ item.store_order }}"
                         >
 
-                            <div class="edit-staff-header">
-                                {{ item.staff.name }}
+                            <div class="edit-staff-header" title="{{ item.full_name }}">
+                                {% if item.show_store %}
+                                <small class="edit-staff-store">
+                                    {{ item.store_name }}
+                                </small>
+                                {% endif %}
+
+                                <span>{{ item.display_name }}</span>
                             </div>
 
                             <div class="edit-staff-timeline" style="height: {{ chart_height }}px;">
@@ -659,7 +666,13 @@
             )
         );
 
-        columns.sort(function (a, b) {
+                columns.sort(function (a, b) {
+            const storeA = Number(a.dataset.storeOrder);
+            const storeB = Number(b.dataset.storeOrder);
+
+            if (storeA !== storeB) {
+                return storeA - storeB;
+            }
 
             const orderA = Number(a.dataset.order);
             const orderB = Number(b.dataset.order);

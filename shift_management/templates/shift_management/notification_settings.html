@@ -1,0 +1,26 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+{% block title %}通知日程設定{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'shift_management/style.css' %}">
+<style>
+.notification-settings{padding:24px}.notification-settings h1{margin:0 0 20px;font-size:24px}.notification-filter{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-bottom:24px}.notification-filter label{display:grid;gap:7px;font-size:13px}.notification-settings input[type=date],.notification-settings select{min-height:40px;padding:8px 10px;border:1px solid #dce2ea;border-radius:6px;background:white;font:inherit;font-size:14px}.notification-settings button{padding:11px 18px;border:0;border-radius:6px;background:#3478c7;color:white;cursor:pointer}.notification-date-form p{display:grid;gap:8px;font-size:14px;margin:20px 0}.notification-date-form input[type=date]{max-width:300px}.notification-setting-help{color:#777;font-size:13px;line-height:1.8}.notification-date-form .errorlist{color:#b44545;font-size:13px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="staff-page"><section class="staff-card notification-settings">
+    <h1>通知日程設定</h1>
+    {% if areas %}
+    <form method="get" class="notification-filter">
+        <label>エリア<select name="area">{% for area in areas %}<option value="{{ area.pk }}" {% if selected_area.pk == area.pk %}selected{% endif %}>{{ area.name }}</option>{% endfor %}</select></label>
+        <label>対象シフト月<select name="period">{% for item in month_options %}<option value="{{ item.value }}" {% if period == item.value %}selected{% endif %}>{{ item.year }}年{{ item.month }}月</option>{% endfor %}</select></label>
+        <button>表示</button>
+    </form>
+    <h2>{{ selected_area.name }} ／ {{ year }}年{{ month }}月のシフト</h2>
+    <p class="notification-setting-help">このシフト月の提出期限・作成予定日・発表予定日を設定します。対象月より前の日付も指定できます。評価の期限は「スタッフ評価設定」を使います。</p>
+    <form method="post" class="notification-date-form">
+        {% csrf_token %}{{ form.as_p }}<button>保存</button>
+    </form>
+    {% else %}<p class="notification-setting-help">日程を設定できるエリアがありません。エリア全店舗の管理権限が必要です。</p>{% endif %}
+</section></div>
+{% endblock %}

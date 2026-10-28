@@ -24,6 +24,7 @@ from .shift_controls import (
     allowed_stores,
     get_month_schedule,
     required_count,
+    generation_months,
 )
 
 
@@ -54,20 +55,29 @@ def reject_past_generation(view):
         try:
             year = int(request.POST["year"])
             month = int(request.POST["month"])
-            target = datetime(year, month, 1).date()
+            datetime(year, month, 1)
         except (KeyError, ValueError, TypeError):
             messages.error(
-                request, "対象年月を正しく選択してください。"
+                request,
+                "対象年月を正しく選択してください。",
             )
-            return redirect("shift_management:shift_management")
+            return redirect(
+                "shift_management:shift_management"
+            )
 
-        if target < timezone.localdate().replace(day=1):
+        allowed = {
+            (item["year"], item["month"])
+            for item in generation_months()
+        }
+
+        if (year, month) not in allowed:
             messages.error(
                 request,
-                "過去月のシフトは自動生成できません。"
-                "閲覧のみ利用できます。",
+                "自動生成できるのは今月・来月・再来月だけです。",
             )
-            return redirect("shift_management:shift_management")
+            return redirect(
+                "shift_management:shift_management"
+            )
 
         return view(request, *args, **kwargs)
 

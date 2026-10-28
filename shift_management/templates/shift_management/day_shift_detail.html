@@ -1,0 +1,139 @@
+{% extends "shift_management/base.html" %}
+{% load static %}
+
+{% block title %}シフト詳細{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet"
+      href="{% static 'shift_management/style.css' %}">
+
+<style>
+    .day-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .day-heading h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+
+    .day-back,
+    .day-back:visited {
+        padding: 9px 14px;
+        border: 1px solid #cbd8e8;
+        border-radius: 6px;
+        background: white;
+        color: #3478c7;
+        font-size: 13px;
+        text-decoration: none;
+    }
+
+    .day-table-wrap {
+        overflow-x: auto;
+    }
+
+    .day-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .day-table th {
+        padding: 13px 18px;
+        background: #f7f9fc;
+        color: #777;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .day-table td {
+        padding: 16px 18px;
+        border-top: 1px solid #edf0f3;
+        white-space: nowrap;
+    }
+
+    .day-meta {
+        margin-left: 8px;
+        padding: 3px 7px;
+        border-radius: 5px;
+        background: #eaf2fc;
+        color: #3478c7;
+        font-size: 11px;
+    }
+
+    .day-empty {
+        padding: 24px;
+        color: #777;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="staff-page">
+    <div class="day-heading">
+        <h1>
+            {{ target_date|date:"Y年n月j日（D）" }}のシフト
+        </h1>
+
+        <a class="day-back" href="{{ home_url }}">
+            カレンダーに戻る
+        </a>
+    </div>
+
+    {% regroup rows by store as store_groups %}
+
+    {% for group in store_groups %}
+    <section class="staff-card">
+        <div class="staff-card-header">
+            <h1>{{ group.grouper.name }}</h1>
+        </div>
+
+        <div class="day-table-wrap">
+            <table class="day-table">
+                <thead>
+                    <tr>
+                        <th>シフト枠</th>
+                        <th>勤務時間</th>
+                        <th>スタッフ</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in group.list %}
+                    <tr>
+                        <td>{{ row.slot }}</td>
+                        <td>{{ row.start }}〜{{ row.end }}</td>
+                        <td>
+                            {{ row.staff.name }}
+
+                            {% if row.training %}
+                            <span class="day-meta">研修</span>
+                            {% endif %}
+
+                            {% if row.draft %}
+                            <span class="day-meta">下書き</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% empty %}
+    <section class="staff-card">
+        <p class="day-empty">
+            この日に表示できるシフトはありません。
+        </p>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

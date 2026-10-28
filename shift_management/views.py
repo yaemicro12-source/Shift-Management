@@ -948,7 +948,15 @@ def edit_shift(request):
             item["sort_order"],
         )
     )
+    from .staff_labels import prepare_chart_staffs
 
+    chart_staffs = prepare_chart_staffs(
+        chart_staffs,
+        day_shifts,
+        selected_date,
+        stores,
+        selected_store,
+    )
     # 不足日の表示
     shortages = ShiftShortage.objects.filter(
         store__in=editable_stores,
@@ -1530,6 +1538,22 @@ def generate_shift(request):
                 )
             )
 
+            from .evaluation_services import generation_evaluation_scores
+
+            candidate_ids = {
+                preference.submission.staff_id
+                for preference in preferences
+            } & {
+                membership.staff_id
+                for membership in memberships
+            }
+
+            evaluation_scores = generation_evaluation_scores(
+                area,
+                candidate_ids,
+                year,
+                month,
+            )
             working_days = defaultdict(set)
             weekly_minutes = defaultdict(int)
             monthly_minutes = defaultdict(int)
@@ -1706,13 +1730,14 @@ def generate_shift(request):
                         (staff, actual_end, duration)
                     )
 
-                result.sort(
-                    key=lambda item: (
-                        not item[0].shift_priority,
-                        monthly_minutes[item[0].id],
-                        item[0].id,
+                    result.sort(
+                        key=lambda item: (
+                            not item[0].shift_priority,
+                            monthly_minutes[item[0].id],
+                            -evaluation_scores.get(item[0].id, 3),
+                            item[0].id,
+                        )
                     )
-                )
                 return result
 
             if schedule is None:

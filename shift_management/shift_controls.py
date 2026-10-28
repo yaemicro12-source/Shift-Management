@@ -121,6 +121,24 @@ def required_count(day, slot):
 def refresh_day_shortages(stores, day):
     from .staff_requests import recalculate_shortages
     recalculate_shortages(stores, day)
+def generation_months():
+    today = timezone.localdate()
+    base = today.year * 12 + today.month - 1
+
+    result = []
+
+    for offset in range(3):
+        year, month_zero = divmod(base + offset, 12)
+        month = month_zero + 1
+
+        result.append({
+            "year": year,
+            "month": month,
+            "value": f"{year:04d}-{month:02d}",
+            "label": f"{year}年{month}月",
+        })
+
+    return result
 
 @manager_required
 def shift_management_page(request):
@@ -134,11 +152,22 @@ def shift_management_page(request):
         + timedelta(days=32)
     ).replace(day=1)
 
+    month_options = generation_months()
+    allowed_months = {
+        (item["year"], item["month"])
+        for item in month_options
+        }
+    
     params = request.POST if request.method == "POST" else request.GET
 
     try:
-        year = int(params.get("year", default.year))
-        month = int(params.get("month", default.month))
+        if params.get("period"):
+            year, month = map(
+                int, params["period"].split("-")
+            )
+        else:
+            year = int(params.get("year", default.year))
+            month = int(params.get("month", default.month))
         if not 2000 <= year <= 2100:
             raise ValueError
 
@@ -154,7 +183,14 @@ def shift_management_page(request):
     except (ValueError, TypeError):
         messages.error(request, "対象年月を正しく選択してください。")
         return redirect("shift_management:shift_management")
-
+    
+    if (year, month) not in allowed_months:
+        messages.error(
+            request,
+            "作成・管理できるのは今月・来月・再来月だけです。",
+        )
+        return redirect("shift_management:shift_management")
+    
     area = (
         get_object_or_404(areas, id=area_id)
         if area_id else None
@@ -164,7 +200,12 @@ def shift_management_page(request):
         return render(
             request,
             "shift_management/shift_management.html",
-            {"areas": areas, "year": year, "month": month},
+            {
+                "areas": areas,
+                "year": year,
+                "month": month,
+                "month_options": month_options,
+            },
         )
 
     stores = controlled_stores(manager, area)
@@ -313,7 +354,7 @@ def shift_management_page(request):
             "selected_area": area,
             "year": year,
             "month": month,
-            "months": range(1, 13),
+            "month_options": month_options,
             "first": first,
             "state": state,
             "state_label": {
@@ -329,7 +370,7 @@ def shift_management_page(request):
                 state == 1
                 and draft_count == 0
                 and confirmed_count == 0
-                and first >= timezone.localdate().replace(day=1)
+                and (year, month) in allowed_months
             ),
             "can_delete": (
                 state <= 2
