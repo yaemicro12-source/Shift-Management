@@ -3145,3 +3145,40 @@ div.settings-menu-item {
     outline: 2px solid #3478c7;
     outline-offset: 3px;
 }
+.staff-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.staff-list-heading .staff-list-title {
+    margin: 0;
+}
+
+.staff-list-heading .staff-add-button {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.staff-list-page .staff-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.staff-list-page .staff-list-heading .staff-list-title {
+    margin: 0;
+}
+
+.staff-list-page .staff-list-heading .staff-add-button {
+    width: auto;
+    margin: 0 0 0 auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}

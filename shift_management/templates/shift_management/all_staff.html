@@ -8,7 +8,14 @@
 
 {% block content %}
 <div class="staff-list-page">
-  <h1 class="staff-list-title">従業員一覧</h1>
+    <div class="staff-list-heading">
+    <h1 class="staff-list-title">従業員一覧</h1>
+
+    <a href="{% url 'shift_management:add_staff' %}"
+       class="staff-add-button">
+      ＋ 従業員追加
+    </a>
+  </div>
 
   <section class="staff-list-panel">
     <div class="staff-list-header">
@@ -160,11 +167,6 @@
     {% endif %}
   </div>
 
-  <div class="staff-add-row">
-    <a href="{% url 'shift_management:add_staff' %}"
-       class="staff-add-button">＋ 従業員追加</a>
-  </div>
-</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
