@@ -145,16 +145,81 @@
     font-size: 11px;
     font-weight: 700;
 }
+        .common-header-brand {
+            min-width: 0;
+            margin-right: 12px;
+        }
+
+        .common-header-home,
+        .common-header-home:visited {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .common-header-home:hover {
+            color: #3478c7;
+        }
+
+        .common-header-home:focus-visible {
+            outline: 2px solid #3478c7;
+            outline-offset: 4px;
+            border-radius: 3px;
+        }
+
+        .common-header-user {
+            margin: 5px 0 0;
+            color: #3478c7;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 480px) {
+            .common-header {
+                padding: 12px;
+            }
+
+            .common-header-title {
+                font-size: 16px;
+            }
+
+            .common-header-user {
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 
 <body>
     <header class="common-header">
-       <h1 class="common-header-title">
-            {% block header_title %}
-                シフト管理システム
-            {% endblock %}
-        </h1>
+        <div class="common-header-brand">
+            <h1 class="common-header-title">
+                {% if user.is_authenticated and user.staffprofile.role == 2 %}
+                    <a
+                        href="{% url 'shift_management:manager_main' %}"
+                        class="common-header-home"
+                    >
+                        シフト管理システム
+                    </a>
+                {% elif user.is_authenticated and user.staffprofile.role == 1 %}
+                    <a
+                        href="{% url 'shift_management:staff_main' %}"
+                        class="common-header-home"
+                    >
+                        シフト管理システム
+                    </a>
+                {% else %}
+                    シフト管理システム
+                {% endif %}
+            </h1>
+
+            {% if user.is_authenticated %}
+                <p class="common-header-user">
+                    {{ user.username }}：{{ user.staffprofile.name }}{% if user.staffprofile.firstname %} {{ user.staffprofile.firstname }}{% endif %}
+                </p>
+            {% endif %}
+        </div>
         {% if user.is_authenticated %}
         <a href="{% url 'shift_management:notifications' %}"
            class="common-notification">

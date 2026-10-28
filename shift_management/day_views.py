@@ -64,9 +64,6 @@ def day_shift_detail(request, year, month, day):
             status=2,
         )
 
-        if not staff.can_view_all_shifts:
-            shifts = shifts.filter(staff=staff)
-
         # メイン画面と同様、未来の月は公開済みだけ
         today = timezone.localdate()
 
