@@ -98,7 +98,7 @@
             <td>
               <a class="staff-name-link"
                  href="{% url 'shift_management:edit_staff' staff.id %}">
-                {{ staff.name }}
+                {{ staff.name }}{% if staff.firstname %} {{ staff.firstname }}{% endif %}
               </a>
             </td>
             <td class="staff-id-cell">{{ staff.user.username }}</td>

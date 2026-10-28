@@ -111,7 +111,7 @@
                         <td>{{ row.slot }}</td>
                         <td>{{ row.start }}〜{{ row.end }}</td>
                         <td>
-                            {{ row.staff.name }}
+                            {{ row.staff.name }}{% if row.staff.firstname %} {{ row.staff.firstname }}{% endif %}
 
                             {% if row.training %}
                             <span class="day-meta">研修</span>
