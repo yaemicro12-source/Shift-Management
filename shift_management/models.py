@@ -928,3 +928,52 @@ class EvaluationAdjustment(models.Model):
 
     def __str__(self):
         return f"{self.staff} : {self.previous_score} → {self.new_score}"
+class Notification(models.Model):
+    recipient = models.ForeignKey(
+        StaffProfile,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    event_key = models.CharField(max_length=180)
+    category = models.CharField(max_length=20)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    url = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["recipient", "event_key"],
+                name="unique_staff_notification_event",
+            )
+        ]
+
+
+class ShiftNotificationPlan(models.Model):
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.CASCADE,
+    )
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    submission_deadline = models.DateField(
+        verbose_name="希望シフト提出期限"
+    )
+    creation_date = models.DateField(
+        verbose_name="シフト作成予定日"
+    )
+    publication_date = models.DateField(
+        verbose_name="シフト発表予定日"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["area", "year", "month"],
+                name="unique_area_notification_plan",
+            )
+        ]

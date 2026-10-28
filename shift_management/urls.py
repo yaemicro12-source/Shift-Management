@@ -8,6 +8,7 @@ from .shift_controls import shift_management_page
 from .request_popup import respond_request
 from .messaging import message_page
 from .day_views import day_shift_detail
+from . import notifications
 
 app_name = 'shift_management'
 
@@ -85,5 +86,25 @@ urlpatterns = [
         "shifts/day/<int:year>/<int:month>/<int:day>/",
         day_shift_detail,
         name="day_shift_detail",
+    ),
+    path(
+    "notifications/",
+    notifications.notification_list,
+    name="notifications",
+    ),
+    path(
+        "notifications/<int:notification_id>/open/",
+        notifications.notification_open,
+        name="notification_open",
+    ),
+    path(
+        "notifications/read-all/",
+        notifications.notification_read_all,
+        name="notification_read_all",
+    ),
+    path(
+        "settings/notifications/",
+        notifications.notification_settings,
+        name="notification_settings",
     ),
 ]
