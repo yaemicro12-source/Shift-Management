@@ -33,3 +33,19 @@ admin.site.register(ShiftShortage)
 admin.site.register(ShiftAdjustmentRequest)
 admin.site.register(MessageThread)
 admin.site.register(Message)
+
+from .models import (
+    EvaluationSetting,
+    EvaluationItem,
+    StaffEvaluation,
+    EvaluationScore,
+)
+
+for model in (
+    EvaluationSetting,
+    EvaluationItem,
+    StaffEvaluation,
+    EvaluationScore,
+):
+    if not admin.site.is_registered(model):
+        admin.site.register(model)

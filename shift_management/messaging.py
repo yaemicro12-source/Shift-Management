@@ -16,9 +16,10 @@ from .models import (
 
 
 def contact_staff(staff):
-    """現在の所属・管理範囲から会話できる相手を取得する。"""
+    """同じエリア内で、役職に応じた会話相手を取得する。"""
     today = timezone.localdate()
 
+    # 現在有効な店舗所属
     memberships = StaffStoreAssignment.objects.filter(
         starts_on__lte=today,
     ).filter(
@@ -29,6 +30,7 @@ def contact_staff(staff):
     scopes = ManagementScope.objects.all()
 
     if staff.role == 2:
+        # 管理者のエリアは管理範囲から判定
         own_scopes = scopes.filter(manager=staff)
 
         areas = set(
@@ -46,12 +48,18 @@ def contact_staff(staff):
             store__area_id__in=areas
         ).values("staff_id")
 
+        manager_ids = scopes.filter(
+            Q(area_id__in=areas)
+            | Q(store__area_id__in=areas)
+        ).values("manager_id")
+
         allowed = (
-            Q(role=2)
+            Q(role=2, pk__in=manager_ids)
             | Q(role=1, pk__in=staff_ids)
         )
 
     elif staff.role == 1:
+        # スタッフ・責任者のエリアは現在の店舗所属から判定
         areas = memberships.filter(
             staff=staff
         ).values("store__area_id")
@@ -64,9 +72,14 @@ def contact_staff(staff):
         allowed = Q(role=2, pk__in=manager_ids)
 
         if staff.is_position_holder:
+            holder_ids = memberships.filter(
+                store__area_id__in=areas
+            ).values("staff_id")
+
             allowed |= Q(
                 role=1,
                 is_position_holder=True,
+                pk__in=holder_ids,
             )
 
     else:
