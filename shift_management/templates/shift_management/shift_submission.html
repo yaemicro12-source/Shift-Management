@@ -157,8 +157,8 @@
 
             <p class="submission-help">
                 チェック欄は「{{ submission_type }}」です。
-                出勤可能な日は時刻を入力してください。
-                終了の00:00は24:00です。
+                時間指定がある場合のみ、開始・終了を両方入力してください。
+                両方空欄なら時間指定は無しで提出されます。
             </p>
 
             <form method="post" id="shift-form">
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         row.querySelectorAll("input[type=time]").forEach(input => {
             input.disabled = !available;
-            input.required = available;
+            input.required = false;
             input.setCustomValidity("");
         });
     }
@@ -385,21 +385,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 const start = row.querySelector(".shift-start");
                 const end = row.querySelector(".shift-end");
 
-                if (
-                    !start.disabled &&
+    document.getElementById("shift-form").addEventListener(
+        "submit",
+        event => {
+            for (const row of rows) {
+                const start = row.querySelector(".shift-start");
+                const end = row.querySelector(".shift-end");
+
+                if (start.disabled) continue;
+
+                end.setCustomValidity("");
+
+                if (!start.value && !end.value) continue;
+
+                let error = "";
+
+                if (!start.value || !end.value) {
+                    error = "開始・終了を両方入力するか、両方空欄にしてください。";
+                } else if (
                     (minutes(end.value) || 1440) <= minutes(start.value)
                 ) {
-                    event.preventDefault();
+                    error = "終了は開始より後にしてください。翌日0時は00:00で入力します。";
+                }
 
-                    end.setCustomValidity(
-                        "終了は開始より後にしてください。00:00は24:00として扱います。"
-                    );
+                if (error) {
+                    event.preventDefault();
+                    end.setCustomValidity(error);
                     end.reportValidity();
                     return;
                 }
             }
         }
     );
-});
 </script>
 {% endblock %}

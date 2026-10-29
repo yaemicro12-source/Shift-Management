@@ -386,7 +386,7 @@ def shift_submission(request):
             item["start_value"] = None
             item["end_value"] = None
 
-            if available:
+            if available and (item["start"] or item["end"]):
                 try:
                     start = time.fromisoformat(item["start"])
                     end = time.fromisoformat(item["end"])
@@ -1656,11 +1656,6 @@ def generate_shift(request):
                     if staff.joined_on > day or day in days:
                         continue
 
-                    if (
-                        preference.available_start_time is None
-                        or preference.available_end_time is None
-                    ):
-                        continue
 
                     actual_end = end
 
@@ -1680,12 +1675,17 @@ def generate_shift(request):
                         continue
 
                     if (
-                        minute(preference.available_start_time)
-                        > start
-                        or minute(
-                            preference.available_end_time,
-                            end=True,
-                        ) < actual_end
+                        (
+                            preference.available_start_time is not None
+                            and minute(preference.available_start_time) > start
+                        )
+                        or (
+                            preference.available_end_time is not None
+                            and minute(
+                                preference.available_end_time,
+                                end=True,
+                            ) < actual_end
+                        )
                     ):
                         continue
 
