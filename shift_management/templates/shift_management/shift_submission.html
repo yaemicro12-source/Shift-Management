@@ -338,10 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     action === "check";
             }
 
-            if (start && end) {
-                row.querySelector(".shift-start").value = start;
-                row.querySelector(".shift-end").value = end;
-            }
+            row.querySelector(".shift-start").value = start;
+            row.querySelector(".shift-end").value = end;
 
             sync(row);
             count++;
@@ -378,13 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
             : "読み込める前月の提出データがありません。";
     });
 
-    document.getElementById("shift-form").addEventListener(
-        "submit",
-        event => {
-            for (const row of rows) {
-                const start = row.querySelector(".shift-start");
-                const end = row.querySelector(".shift-end");
-
+    
     document.getElementById("shift-form").addEventListener(
         "submit",
         event => {
@@ -417,5 +409,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     );
+});
 </script>
 {% endblock %}
