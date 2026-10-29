@@ -2301,6 +2301,8 @@ def evaluation_detail(request, area_id, staff_id):
             "saved_scores": saved_scores,
             "deadline_day": setting.deadline_day,
             #"deadline_passed": today.day > setting.deadline_day,
+            #評価を一時的に期限解除
+            "deadline_passed": False,
         }
     )
 def csrf_failure(request, reason=""):
