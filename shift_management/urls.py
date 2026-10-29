@@ -9,6 +9,7 @@ from .request_popup import respond_request
 from .messaging import message_page
 from .day_views import day_shift_detail
 from . import notifications
+from .request_actions import apply_request
 
 app_name = 'shift_management'
 
@@ -69,13 +70,13 @@ urlpatterns = [
     ),
     path(
     "requests/<int:request_id>/respond/",
-    respond_request,
-    name="respond_request",
+        respond_request,
+        name="respond_request",
     ),
     path(
-    "message/",
-    message_page,
-    name="message",
+        "message/",
+        message_page,
+        name="message",
     ),
     path(
         "message/<int:staff_id>/",
@@ -88,9 +89,9 @@ urlpatterns = [
         name="day_shift_detail",
     ),
     path(
-    "notifications/",
-    notifications.notification_list,
-    name="notifications",
+        "notifications/",
+        notifications.notification_list,
+        name="notifications",
     ),
     path(
         "notifications/<int:notification_id>/open/",
@@ -106,5 +107,10 @@ urlpatterns = [
         "settings/notifications/",
         notifications.notification_settings,
         name="notification_settings",
+    ),
+    path(
+        "requests/<int:request_id>/apply/",
+        apply_request,
+        name="apply_request",
     ),
 ]

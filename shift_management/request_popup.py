@@ -49,137 +49,66 @@ def pending_requests(request):
 @login_required(login_url="shift_management:staff_login")
 @require_POST
 def respond_request(request, request_id):
+    from .request_actions import save_response
+    from .messaging import contact_staff
+
     staff = get_object_or_404(
         StaffProfile,
         user=request.user,
         is_active=True,
     )
 
-    try:
-        with transaction.atomic():
-            row = get_object_or_404(
-                ShiftAdjustmentRequest.objects
-                .select_for_update()
-                .select_related(
-                    "shortage__store__area",
-                    "shortage__shift_time_slot",
-                ),
-                pk=request_id,
-                recipient=staff,
-            )
+    row = get_object_or_404(
+        ShiftAdjustmentRequest,
+        pk=request_id,
+        recipient=staff,
+    )
+    action = request.POST.get("action")
 
+    try:
+        if action == "hold":
             if (
                 row.status != 1
                 or row.response_deadline <= timezone.now()
             ):
                 raise ValidationError(
-                    "回答済み、または回答期限を過ぎています。"
+                    "回答済み・受付終了、または期限切れです。"
                 )
 
-            action = request.POST.get("action")
+            deferred = request.session.get(
+                "deferred_request_ids", []
+            )
+            request.session["deferred_request_ids"] = list(
+                set(deferred + [row.pk])
+            )
 
-            if action == "hold":
-                deferred = request.session.get(
-                    "deferred_request_ids", []
-                )
+            messages.info(
+                request,
+                "保留しました。次回ログイン時に再表示します。",
+            )
 
-                request.session["deferred_request_ids"] = list(
-                    set(deferred + [row.pk])
-                )
-
-                messages.info(
-                    request,
-                    "保留しました。次回ログイン時に再表示します。",
-                )
-
-            elif action in ("accept", "decline"):
-                if action == "accept":
-                    shortage = row.shortage
-
-                    if (
-                        not shortage.store
-                        or not shortage.shift_time_slot
-                        or not shortage.shift_time_slot.is_active
-                    ):
-                        raise ValidationError(
-                            "この出勤依頼の店舗・枠は利用できません。"
-                        )
-
-                    Area.objects.select_for_update().get(
-                        pk=shortage.store.area_id
-                    )
-
-                    state = get_month_schedule(
-                        shortage.store.area,
-                        shortage.target_date.year,
-                        shortage.target_date.month,
-                    )
-
-                    if state is None or state.status != 2:
-                        raise ValidationError(
-                            "シフトの作成状態が変わったため承認できません。"
-                        )
-
-                    recalculate_shortages(
-                        [shortage.store],
-                        shortage.target_date,
-                    )
-
-                    shortage.refresh_from_db()
-
-                    if (
-                        shortage.assigned_count
-                        >= shortage.required_count
-                    ):
-                        raise ValidationError(
-                            "この枠の不足は解消しています。"
-                        )
-
-                    _, reason = eligibility(
-                        staff, shortage
-                    )
-
-                    if reason:
-                        raise ValidationError(
-                            f"現在は承認できません：{reason}"
-                        )
-
-                row.status = (
-                    2 if action == "accept" else 3
-                )
-                row.responded_at = timezone.now()
-                row.response_note = request.POST.get("note", "").strip()[:2000]
-
-                row.save(
-                    update_fields=[
-                        "status",
-                        "responded_at",
-                        "response_note",
-                    ]
-                )
-
-                messages.success(
-                    request,
-                    "回答を保存しました。承認後の配置は管理者が行います。",
-                )
-
-            else:
-                raise ValidationError(
-                    "操作が不正です。"
-                )
+        else:
+            save_response(
+                staff,
+                request_id,
+                action,
+                request.POST.get("note", ""),
+            )
+            messages.success(
+                request,
+                "回答を保存しました。承認した場合は管理者の反映待ちです。",
+            )
 
     except ValidationError as exc:
-        messages.error(
-            request,
-            " ".join(exc.messages),
+        messages.error(request, " ".join(exc.messages))
+
+    if action == "hold":
+        home = (
+            "shift_management:manager_main"
+            if staff.role == 2
+            else "shift_management:staff_main"
         )
-
-    if request.POST.get("action") == "hold":
-        if staff.role == 2:
-            return redirect("shift_management:manager_main")
-        return redirect("shift_management:staff_main")
-
-    from .messaging import contact_staff
+        return redirect(home)
 
     if (
         row.requested_by_id

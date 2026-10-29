@@ -611,11 +611,13 @@ class ShiftShortage(models.Model):
 
 class ShiftAdjustmentRequest(models.Model):
     """勤務調整依頼"""
-    STATUS_CHOICES =[
-        (1,"送信済み"),
-        (2,"承諾"),
-        (3,"辞退"),
-        (4,"期限切れ"),
+    STATUS_CHOICES = [
+        (1, "送信済み"),
+        (2, "承諾・反映待ち"),
+        (3, "辞退"),
+        (4, "期限切れ"),
+        (5, "必要人数に達したため受付終了"),
+        (6, "シフト反映済み"),
     ]
 
     shortage = models.ForeignKey(

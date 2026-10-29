@@ -371,9 +371,15 @@ def shortage_request(request, shortage_id):
                 )
                 shortage.refresh_from_db()
 
-                if shortage.assigned_count >= shortage.required_count:
+                from .request_actions import reserved_count
+
+                if (
+                    shortage.assigned_count
+                    + reserved_count(shortage)
+                    >= shortage.required_count
+                ):
                     raise ValidationError(
-                        "この枠の不足は解消しています。"
+                        "必要人数分の承認が既に集まっています。"
                     )
 
                 ids = {
@@ -442,7 +448,7 @@ def shortage_request(request, shortage_id):
                         f"〜{end_text}\n"
                         "人数不足のため、出勤可能かご回答ください。\n"
                         "勤務希望外のお願いです。"
-                        "承諾だけではシフトは変更されません。"
+                        "承認後、管理者が反映して勤務を確定します。"
                     )
 
                     if extra:

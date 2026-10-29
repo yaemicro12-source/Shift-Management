@@ -396,7 +396,26 @@
                         回答期限
                         {{ item.row.response_deadline|date:"n/j H:i" }}
                     </small>
-
+                    {% if item.mine and item.row.status == 2 %}
+                    <form
+                        method="post"
+                        action="{% url 'shift_management:apply_request' item.row.pk %}"
+                    >
+                        {% csrf_token %}
+                        <div class="chat-request-actions">
+                            <button
+                                type="submit"
+                                style="background:#3378c6;color:white;"
+                            >
+                                シフトに反映
+                            </button>
+                        </div>
+                    </form>
+                    {% elif item.row.status == 6 %}
+                    <p>シフト反映済みです。</p>
+                    {% elif item.row.status == 5 %}
+                    <p>必要人数に達したため、受付を終了しました。</p>
+                    {% endif %}
                     {% if item.can_reply %}
                     <form
                         method="post"

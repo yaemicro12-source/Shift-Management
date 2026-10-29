@@ -2224,13 +2224,13 @@ def evaluation_detail(request, area_id, staff_id):
             )
 
         # 毎月の提出期限を確認
-        if today.day > setting.deadline_day:
-            messages.error(request, "今月の評価提出期限を過ぎています。")
-            return redirect(
-                "shift_management:evaluation_detail",
-                area_id=area.id,
-                staff_id=staff.id
-            )
+        #if today.day > setting.deadline_day:
+            #messages.error(request, "今月の評価提出期限を過ぎています。")
+            #return redirect(
+                #"shift_management:evaluation_detail",
+                #area_id=area.id,
+                #staff_id=staff.id
+            #)
 
         item_scores = {}
 
@@ -2300,7 +2300,7 @@ def evaluation_detail(request, area_id, staff_id):
             "evaluation": evaluation,
             "saved_scores": saved_scores,
             "deadline_day": setting.deadline_day,
-            "deadline_passed": today.day > setting.deadline_day,
+            #"deadline_passed": today.day > setting.deadline_day,
         }
     )
 def csrf_failure(request, reason=""):
